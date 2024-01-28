@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import * as d3 from 'd3';
+import axios from 'axios';
 
 function FCNForm() {
     const [numLayers, setNumLayers] = useState(1);
@@ -12,21 +13,20 @@ function FCNForm() {
         // Convert neurons per layer into an array of numbers
         const neuronsArray = neuronsPerLayer.split(',').map(n => +n.trim());
 
-        const queryParams = new URLSearchParams({
+        const queryParams = {
             numLayers,
             neuronsPerLayer: neuronsArray.join(','),
             activationFunction
-        }).toString();
+        };
 
-        d3.json(`http://localhost:5000/fcn-arch?${queryParams}`, {
-            method: "GET",
-        })
-
-        .then(data => {
-            console.log('Generated Code:', data);
-            // Handle the response data
-        })
-        .catch(error => console.error('Error:', error));
+        axios.get(`http://localhost:5000/fcn-arch`, { params: queryParams })
+            .then(response => {
+                console.log('Response:', response.data);
+                // Handle the response data
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
     }
 
     return (
