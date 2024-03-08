@@ -1,11 +1,12 @@
 import React from 'react'
 import FCNVisual from './visuals/FCNVisual'
+import FCN from './components/FCN'
 
 function App() {
   return (
     <div>
-      <p> Hewfffwfwf </p>
-      <FCNVisual />
+      <FCN/>
+      {/* <FCNVisual /> */}
     </div>
   )
 }
