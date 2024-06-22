@@ -145,7 +145,8 @@ function generateDataset(numOfLayers?: number): Layer[] {
   return res;
 }
 
-const FCNVisual = () => {
+// Entry point, might need to replace dataset with a prop or return an update function
+function FCNVisual() {
   const [dataset, setDataset] = useState(
     generateDataset()
   )
