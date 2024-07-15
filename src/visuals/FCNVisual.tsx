@@ -1,4 +1,4 @@
-import { Button } from "@mantine/core";
+import { Button } from "antd";
 import { useEffect, useRef, useState } from "react"
 import * as d3 from "d3";
 
@@ -233,7 +233,7 @@ function FCNVisual() {
   }, [dataset])
 
   return (
-    <div>
+    <div className="h-fit overflow-auto">
       <Button className="bg-green-600 text-white" onClick={() => setDataset(generateDataset(getRandomInt(2, 4)))}>Button</Button >
       <svg viewBox={"0 0 " + svgViewport + " " + svgViewport} width="750" height="750">
         <rect x="0" y="0" width={svgViewport} height={svgViewport} fill="none" stroke="black" />
