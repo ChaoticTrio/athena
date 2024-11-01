@@ -1,0 +1,123 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+.app-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #fff;
+  color: #fff;
+}
+
+.header {
+  flex-shrink: 0;
+  border-bottom: 1px solid #fff;
+  padding: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #fff;
+}
+
+.left-tabs {
+  @apply flex-shrink-0;
+}
+
+.generate-button {
+  @apply px-8 py-1 bg-gray-500 text-white hover:bg-gray-600 rounded;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.right-controls {
+  @apply flex items-center gap-4;
+}
+
+.framework-tabs,
+.framework-type-tabs {
+  @apply border-l border-gray-200 pl-4;
+}
+
+.header-buttons {
+  @apply flex gap-2;
+}
+
+.main-content {
+  @apply flex flex-1 overflow-hidden;
+}
+
+/* Customize Ant Design Tabs */
+.ant-tabs-nav {
+  @apply mb-0;
+}
+
+.ant-tabs-tab {
+  @apply px-4 py-2;
+}
+
+.ant-tabs-tab-active {
+  @apply bg-gray-100;
+}
+
+
+/* Modern scrollbar styles */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.5) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+  transition: background 0.2s;  /* Smooth hover transition */
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Hide scrollbar when not scrolling (optional) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Monaco Editor styles */
+.monaco-editor {
+  @apply rounded-md overflow-hidden;
+}
+
+.monaco-editor .margin {
+  @apply bg-gray-100;
+}
+
+.monaco-editor .line-numbers {
+  @apply text-gray-500;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

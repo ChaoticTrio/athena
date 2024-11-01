@@ -13,7 +13,7 @@ interface FormElement {
 const options1 = ["Input", "Flatten", "Linear", "Dropout"];
 const options2 = ["RELU", "Sigmoid", "Tanh", "Softmax"];
 
-const FCN: FC = () => {
+const FCNForm: FC = () => {
   const [formElements, setFormElements] = useState<FormElement[]>([
     { select1: options1[0], select2: options2[0], number: 0 },
   ]);
@@ -144,4 +144,4 @@ const FCN: FC = () => {
   );
 };
 
-export default FCN;
+export default FCNForm;
