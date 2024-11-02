@@ -10,18 +10,22 @@ function App() {
     { i: "FCN", x: 6, y: 0, w: 6, h: 6},
     { i: "Code", x: 6, y: 12, w: 6, h: 6},
   ];
+  console.log(window.innerHeight, window.innerWidth);
   return (
     <div className="h-screen overflow-hidden">
-      <DiagCodeGrid layout={layout}>
+      {/* <DiagCodeGrid layout={layout}>
         <div key="FCNVisual" className="overflow-auto">
           <FCNVisual />
         </div>
         <div key="FCN" className="overflow-auto">
-          <FCN/>
+          <FCN />
         </div>
-        <div key="Code" className="overflow-auto">Code</div>
-        {/* <CNNVisual width={1200} height={800} /> */}
-      </DiagCodeGrid>
+        <div key="Code" className="overflow-auto">
+          Code
+        </div>
+      </DiagCodeGrid> */}
+      <div style={{ height: window.innerHeight / 2, width: window.innerWidth }}/>
+      < CNNVisual width={window.innerWidth} height={window.innerHeight / 2} />
     </div>
   );
 }

@@ -1,6 +1,10 @@
 import { Edges, OrbitControls, OrthographicCamera, Outlines } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useLoader } from "@react-three/fiber";
 import { useState } from "react";
+import { randInt } from "three/src/math/MathUtils.js";
+import * as THREE from "three";
+import earthImg from "./../../public/earth.jpg";
+import { scaleBand } from "d3";
 
 // array of objects with req properties below
 // CNN - {output_channels, kernel_size, stride, padding}
@@ -110,6 +114,91 @@ function calcChannelWidth(n: number): number {
   return Math.log2(n) * 4;
 }
 
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
+type Color = {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+};
+
+type SpriteProps = {
+  msg: string;
+  position: [number, number, number];
+  fontface?: string;
+  fontSize?: number;
+  borderThickness?: number;
+  borderColor?: Color;
+  backgroundColor?: Color;
+  textColor?: Color;
+};
+
+function colorToString(color: Color): string {
+  return `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`;
+}
+
+// function Sprite({ url, ...props } : { url: string }) {
+function Sprite({ msg = "",
+  position = [0, 0, 0],
+  fontSize = 64,
+  fontface = "Arial",
+  borderThickness = 0,
+  borderColor = { r: 0, g: 0, b: 0, a: 1.0 },
+  backgroundColor = { r: 255, g: 255, b: 255, a: 1.0 },
+  textColor = { r: 0, g: 0, b: 0, a: 1.0 },
+}: SpriteProps) {
+
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d")!;
+  context.font = "Bold " + fontSize + "px " + fontface;
+  const metrics = context.measureText(msg);
+  const textWidth = metrics.width;
+  const textHeight = fontSize;
+
+  context.fillStyle = colorToString(backgroundColor);
+  context.strokeStyle = colorToString(borderColor);
+
+  context.lineWidth = borderThickness;
+  roundRect(
+    context,
+    borderThickness / 2,
+    borderThickness / 2,
+    (textWidth + borderThickness) * 1.1,
+    fontSize * 1.4 + borderThickness,
+    8
+  );
+
+  context.fillStyle = colorToString(textColor);
+  // canvas.width = 20;
+  // canvas.width = textWidth;
+  console.log(textWidth + borderThickness * 2);
+  context.fillText(msg, borderThickness, fontSize + borderThickness);
+
+  const texture = new THREE.Texture(canvas);
+  texture.needsUpdate = true;
+  // position[0] += textWidth / 2;
+  return (
+    <sprite scale={[40, 20, 1]} position={position} >
+      <spriteMaterial attach="material" map={texture} />
+    </sprite>
+  );
+}
+
 type ConvertedLayer = {
   type:
     | "Input"
@@ -126,6 +215,10 @@ type ConvertedLayer = {
     z: number;
   };
 };
+
+function layerSizeToString(size: { x: number; y: number; z: number }): string {
+  return `${size.x}x${size.y}x${size.z}`;
+}
 
 function getMeshes(
   dataset: Layer[],
@@ -213,14 +306,19 @@ function getMeshes(
   });
   const widthScale = (width * 0.9) / totalWidth;
   const heightScale = (height * 0.6) / maxYZ;
-  let prevEdge: number = -totalWidth / 2;
+  let prevEdge: number = -totalWidth / 2 * widthScale;
+  console.log(widthScale)
   convertedLayers.forEach((layer, i) => {
     switch (layer.type) {
       case "Input":
         {
           res.push(
+            // this is a mesh for the input layer
+            // it is a box with dimensions of the input layer
+            // it is colored green
+            // give it a sprite with the name of the layer
             <mesh
-              position={[(prevEdge + layer.size.x / 2) * widthScale, 0, 0]}
+              position={[prevEdge + (layer.size.x / 2) * widthScale, 0, 0]}
               key={i}
             >
               <boxGeometry
@@ -239,7 +337,15 @@ function getMeshes(
                 transparent={true}
               />
               <Edges linewidth={2} threshold={15} color={"black"} />
-            </mesh>
+            </mesh>,
+            <Sprite
+              msg={"Input"}
+              position={[
+                prevEdge + (layer.size.x / 2) * widthScale,
+                (-layer.size.y * heightScale) / 2 - 20,
+                0,
+              ]}
+            />
           );
         }
         break;
@@ -247,7 +353,7 @@ function getMeshes(
         {
           res.push(
             <mesh
-              position={[(prevEdge + layer.size.x / 2) * widthScale, 0, 0]}
+              position={[prevEdge + (layer.size.x / 2) * widthScale, 0, 0]}
               key={i}
             >
               <boxGeometry
@@ -265,7 +371,15 @@ function getMeshes(
                 transparent={true}
               />
               <Edges linewidth={2} threshold={15} color={"black"} />
-            </mesh>
+            </mesh>,
+            <Sprite
+              msg={layerSizeToString(layer.size)}
+              position={[
+                prevEdge + (layer.size.x / 2) * widthScale,
+                (-layer.size.y * heightScale) / 2 - 20,
+                0,
+              ]}
+            />
           );
         }
         break;
@@ -273,7 +387,7 @@ function getMeshes(
         {
           res.push(
             <mesh
-              position={[(prevEdge + layer.size.x / 2) * widthScale, 0, 0]}
+              position={[prevEdge + (layer.size.x / 2 * widthScale), 0, 0]}
               key={i}
             >
               <boxGeometry
@@ -299,7 +413,7 @@ function getMeshes(
         {
           res.push(
             <mesh
-              position={[(prevEdge + layer.size.x / 2) * widthScale, 0, 0]}
+              position={[prevEdge + (layer.size.x / 2 * widthScale), 0, 0]}
               key={i}
             >
               <boxGeometry
@@ -328,7 +442,7 @@ function getMeshes(
       default:
         break;
     }
-    prevEdge += layer.size.x;
+    prevEdge += layer.size.x * widthScale;
   });
   //   let currWidth: number = 0;
   //   switch (layer.type) {
@@ -429,12 +543,14 @@ function getMeshes(
   //   prevEdge += currWidth;
   // });
   return res;
+  // return <Sprite msg={"1234567890123456789"} position={[0, 0, 0]} />;
 }
 
 // Entry point for CNN visual, takes in width and height of the canvas, needs to be replaced with a prop or return a update function
 function CNNVisual({ width, height }: { width: number; height: number }) {
   const [dataset, setDataset] = useState(generateDataset());
 
+  // setTimeout(() => {setDataset(generateDataset(randInt(1,5)))}, 1000);
   return (
     <div
       id="canvas-container"
@@ -457,8 +573,8 @@ function CNNVisual({ width, height }: { width: number; height: number }) {
           bottom={height / -2}
           left={width / -2}
           right={width / 2}
-          near={0}
-          far={100000000}
+          near={0.1}
+          far={100000}
           position={[0, 0, Math.max(width, height)]}
         />
         <OrbitControls />
