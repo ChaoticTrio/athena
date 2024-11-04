@@ -5,7 +5,6 @@ import {
 } from "@ant-design/icons";
 import { Button, Radio, Tabs, Tooltip } from "antd";
 import { useState } from "react";
-import "./App.css";
 import CodeEditor from "./components/CodeEditor";
 import FCNForm from "./components/FCNForm";
 import ThreePanelLayout from "./components/ThreePanelLayout";
@@ -41,22 +40,54 @@ function App() {
           activeKey={activeTab}
           tabBarStyle={{
             paddingLeft: "1rem",
+            backgroundColor: "white", // Set background color for the tab bar
+            borderBottom: "1px solid #e5e7eb", // Light gray border
           }}
           onChange={(e) => setActiveTab(e as MODEL_TYPE)}
           items={[
             {
               key: MODEL_TYPE.FCN,
-              label: MODEL_TYPE.FCN,
+              label: (
+                <span
+                  className={`py-2 px-4 rounded-lg ${
+                    activeTab === MODEL_TYPE.FCN
+                      ? "bg-slate-700 text-white"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {MODEL_TYPE.FCN}
+                </span>
+              ),
               children: <FCNForm />,
             },
             {
               key: MODEL_TYPE.CNN,
-              label: MODEL_TYPE.CNN,
+              label: (
+                <span
+                  className={`py-2 px-4 rounded-lg ${
+                    activeTab === MODEL_TYPE.CNN
+                      ? "bg-slate-700 text-white"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {MODEL_TYPE.CNN}
+                </span>
+              ),
               children: <div>CNN Form</div>,
             },
             {
               key: MODEL_TYPE.XXX,
-              label: MODEL_TYPE.XXX,
+              label: (
+                <span
+                  className={`py-2 px-4 rounded-lg ${
+                    activeTab === MODEL_TYPE.XXX
+                      ? "bg-slate-700 text-white"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {MODEL_TYPE.XXX}
+                </span>
+              ),
               children: <div>Coming Soon</div>,
             },
           ]}
@@ -121,19 +152,22 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      <div className="header">
+    <div className="app-container min-h-screen bg-slate-50">
+      <div className="header flex items-center justify-between p-4 bg-white border-b border-slate-200">
         <Button
           type="primary"
-          className="generate-button"
+          className="bg-slate-700 hover:bg-slate-800 border-none generate-button"
           onClick={() => console.log("Generate clicked")}
         >
           Generate
         </Button>
 
-        <div className="right-controls ml-auto mr-2">
+        <div className="right-controls">
           <Tooltip title="Help">
-            <Button icon={<QuestionCircleOutlined />} />
+            <Button
+              icon={<QuestionCircleOutlined />}
+              className="text-slate-600 hover:text-slate-800 hover:bg-slate-50"
+            />
           </Tooltip>
         </div>
       </div>

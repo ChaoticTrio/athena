@@ -74,7 +74,7 @@ const ThreePanelLayout: React.FC<ThreePanelLayoutProps> = ({
           <div
             className={`${layoutStyles.resizer} ${
               layoutStyles.verticalResizer
-            } ${isResizing ? "bg-blue-500" : ""}`}
+            } ${isResizing ?  "bg-slate-400" : "bg-slate-200"}`}
             onMouseDown={startResize(handleVerticalResize)}
           />
           <div
@@ -87,7 +87,7 @@ const ThreePanelLayout: React.FC<ThreePanelLayoutProps> = ({
         <div
           className={`${layoutStyles.resizer} ${
             layoutStyles.horizontalResizer
-          } ${isResizing ? "bg-blue-500" : ""}`}
+          } ${isResizing ? "bg-slate-400" : "bg-slate-200"}`}
           onMouseDown={startResize(handleHorizontalResize)}
         />
         <div

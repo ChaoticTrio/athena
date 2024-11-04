@@ -3,7 +3,7 @@ import { Editor } from "@monaco-editor/react";
 
 const CodeEditor: React.FC = () => {
   return (
-    <div className="h-full">
+    <div className="h-full bg-white rounded-lg shadow-sm border border-slate-200">
       <Editor
         height="100%"
         defaultLanguage="python"

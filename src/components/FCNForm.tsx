@@ -20,13 +20,13 @@ const FCNForm: FC = () => {
 
   const [isDialogOpen, setDialogOpen] = useState(false);
 
-  const handleGenerateCode = () => {
-    if (!validateForm()) {
-      setDialogOpen(true);
-      return;
-    }
-    console.log(formElements);
-  };
+  // const handleGenerateCode = () => {
+  //   if (!validateForm()) {
+  //     setDialogOpen(true);
+  //     return;
+  //   }
+  //   console.log(formElements);
+  // };
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
@@ -56,25 +56,23 @@ const FCNForm: FC = () => {
 
   // Function that validates the form
   // For now, it just checks if all the form elements are filled
-  const validateForm = () => {
-    return formElements.every((formElement) => formElement.number > 0);
-  };
+  // const validateForm = () => {
+  //   return formElements.every((formElement) => formElement.number > 0);
+  // };
 
   return (
-    <div className="flex flex-col items-center h-full overflow-auto scrollbar-hide">
-      <Form className="flex flex-col items-center w-full p-4">
+    <div className="flex flex-col items-center h-full overflow-auto scrollbar-hide bg-white">
+      <Form className="flex flex-col items-center w-full p-4 space-y-4">
         {formElements.map((element, index) => (
-          <div key={index} className="flex flex-row gap-5 w-full mb-4">
+          <div key={index} className="flex flex-row gap-5 w-full bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200">
             <Form.Item label="Select 1" className="flex-grow">
               <Select
                 value={element.select1}
-                className="w-full text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                onChange={(value) =>
-                  handleFormElementChange(index, "select1", value)
-                }
+                className="w-full hover:border-slate-500"
+                onChange={(value) => handleFormElementChange(index, "select1", value)}
               >
                 {options1.map((option) => (
-                  <Option key={option} value={option}>
+                  <Option key={option} value={option} className="text-slate-700">
                     {option}
                   </Option>
                 ))}
@@ -108,7 +106,7 @@ const FCNForm: FC = () => {
             <Button
               onClick={() => deleteFormElement(index)}
               type="primary"
-              className="self-end mb-6"
+              className="self-end mb-6 bg-red-500 hover:bg-red-600 border-none"
               danger
               icon={<MinusOutlined />}
             />
@@ -118,18 +116,11 @@ const FCNForm: FC = () => {
       <div className="flex flex-row gap-4 mb-4">
         <Button
           onClick={addFormElement}
-          className="flex items-center justify-center"
+          className="flex items-center justify-center bg-slate-700 hover:bg-slate-800 text-white border-none"
           type="primary"
           icon={<PlusOutlined />}
         >
           Add Layer
-        </Button>
-        <Button
-          type="primary"
-          onClick={handleGenerateCode}
-          className="bg-green-600 hover:bg-green-400 text-white font-bold"
-        >
-          Generate Code
         </Button>
       </div>
       <Modal
