@@ -3,11 +3,11 @@ import {
   DownloadOutlined,
   QuestionCircleOutlined,
 } from "@ant-design/icons";
-import { Button, Radio, Tabs, Tooltip } from "antd";
+import { Button, Radio, Tabs, Tooltip, Splitter } from "antd";
 import { useState } from "react";
 import CodeEditor from "./components/CodeEditor";
 import FCNForm from "./components/FCNForm";
-import ThreePanelLayout from "./components/ThreePanelLayout";
+// import ThreePanelLayout from "./components/ThreePanelLayout";
 import FCNVisual from "./visuals/FCNVisual";
 
 enum MODEL_TYPE {
@@ -172,11 +172,22 @@ function App() {
         </div>
       </div>
 
-      <ThreePanelLayout
+      {/* <ThreePanelLayout
         leftComponent={renderForm()}
         rightComponent={renderCode()}
         bottomComponent={renderVisual()}
-      />
+      /> */}
+      <Splitter
+        style={{ height: "100vh", boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)" }}
+      >
+        <Splitter.Panel collapsible>{renderVisual()}</Splitter.Panel>
+        <Splitter.Panel>
+          <Splitter layout="vertical">
+            <Splitter.Panel>{renderForm()}</Splitter.Panel>
+            <Splitter.Panel>{renderCode()}</Splitter.Panel>
+          </Splitter>
+        </Splitter.Panel>
+      </Splitter>
     </div>
   );
 }
