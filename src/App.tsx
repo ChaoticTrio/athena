@@ -7,7 +7,6 @@ import { Button, Radio, Tabs, Tooltip, Splitter } from "antd";
 import { useState } from "react";
 import CodeEditor from "./components/CodeEditor";
 import FCNForm from "./components/FCNForm";
-// import ThreePanelLayout from "./components/ThreePanelLayout";
 import FCNVisual from "./visuals/FCNVisual";
 
 enum MODEL_TYPE {
@@ -121,7 +120,7 @@ function App() {
               onChange={(e) => setFramework(e.target.value as FRAMEWORK)}
               optionType="button"
               buttonStyle="solid"
-              className="mb-1"
+              className="mb-1 custom-radio-group"
             />
             {framework === FRAMEWORK.Keras && (
               <Radio.Group
@@ -133,7 +132,7 @@ function App() {
                 onChange={(e) => setKerasType(e.target.value as KERAS_TYPE)}
                 optionType="button"
                 buttonStyle="solid"
-                className="mt-1"
+                className="mt-1 custom-radio-group"
               />
             )}
           </div>
@@ -171,12 +170,6 @@ function App() {
           </Tooltip>
         </div>
       </div>
-
-      {/* <ThreePanelLayout
-        leftComponent={renderForm()}
-        rightComponent={renderCode()}
-        bottomComponent={renderVisual()}
-      /> */}
       <Splitter
         style={{ height: "100vh", boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)" }}
       >

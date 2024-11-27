@@ -126,3 +126,30 @@ body,
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+.custom-radio-group .ant-radio-button-wrapper {
+  color: #475569 !important; /* slate-600 */
+  background-color: #f8fafc  !important; /* slate-50 */
+  border-color: #cbd5e1 !important; /* slate-300 */
+}
+
+.custom-radio-group .ant-radio-button-wrapper:first-child {
+  border-left-width: 1px !important; /* Ensure left border is visible */
+}
+
+.custom-radio-group .ant-radio-button-wrapper:hover {
+  color: #1e293b !important; /* slate-800 */
+  background-color: #f1f5f9 !important; /* slate-100 */
+}
+
+.custom-radio-group .ant-radio-button-wrapper-checked {
+  color: #e2e8f0 !important; /* slate-900 */
+  background-color:  #0f172a!important; /* slate-200 */
+  border-color: #cbd5e1 !important; /* slate-300 */
+}
+
+.custom-radio-group .ant-radio-button-wrapper-checked:hover {
+  color: #e2e8f0 !important; /* slate-900 */
+  background-color:  #0f172a!important; /* slate-200 */
+  border-color: #cbd5e1 !important; /* slate-300 */
+}
