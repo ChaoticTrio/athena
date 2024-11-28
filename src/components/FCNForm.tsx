@@ -1,5 +1,6 @@
 import React, { FC, useState } from "react";
 import { Form, Select, InputNumber, Button, Modal } from "antd";
+import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
 
 const { Option } = Select;
 
@@ -12,20 +13,20 @@ interface FormElement {
 const options1 = ["Input", "Flatten", "Linear", "Dropout"];
 const options2 = ["RELU", "Sigmoid", "Tanh", "Softmax"];
 
-const FCN: FC = () => {
+const FCNForm: FC = () => {
   const [formElements, setFormElements] = useState<FormElement[]>([
     { select1: options1[0], select2: options2[0], number: 0 },
   ]);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
 
-  const handleGenerateCode = () => {
-    if (!validateForm()) {
-      setDialogOpen(true);
-      return;
-    }
-    console.log(formElements);
-  };
+  // const handleGenerateCode = () => {
+  //   if (!validateForm()) {
+  //     setDialogOpen(true);
+  //     return;
+  //   }
+  //   console.log(formElements);
+  // };
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
@@ -55,33 +56,31 @@ const FCN: FC = () => {
 
   // Function that validates the form
   // For now, it just checks if all the form elements are filled
-  const validateForm = () => {
-    return formElements.every((formElement) => formElement.number > 0);
-  };
+  // const validateForm = () => {
+  //   return formElements.every((formElement) => formElement.number > 0);
+  // };
 
   return (
-    <div className="flex flex-col items-center mt-4 space-y-4 h-fit">
-      <Form className="flex flex-col items-center">
+    <div className="flex flex-col items-center h-full overflow-auto scrollbar-hide bg-white">
+      <Form className="flex flex-col items-center w-full p-4 space-y-4">
         {formElements.map((element, index) => (
-          <div key={index} className="flex flex-row gap-5">
-            <Form.Item label="Select 1">
+          <div key={index} className="flex flex-row gap-5 w-full bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200">
+            <Form.Item label="Select 1" className="flex-grow">
               <Select
-                defaultValue={element.select1}
-                className="w-full text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                onChange={(value) =>
-                  handleFormElementChange(index, "select1", value)
-                }
+                value={element.select1}
+                className="w-full hover:border-slate-500"
+                onChange={(value) => handleFormElementChange(index, "select1", value)}
               >
                 {options1.map((option) => (
-                  <Option key={option} value={option}>
+                  <Option key={option} value={option} className="text-slate-700">
                     {option}
                   </Option>
                 ))}
               </Select>
             </Form.Item>
-            <Form.Item label="Select 2">
+            <Form.Item label="Select 2" className="flex-grow">
               <Select
-                defaultValue={element.select2}
+                value={element.select2}
                 className="w-full text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 onChange={(value) =>
                   handleFormElementChange(index, "select2", value)
@@ -94,37 +93,34 @@ const FCN: FC = () => {
                 ))}
               </Select>
             </Form.Item>
-            <Form.Item label="Number">
+            <Form.Item label="Number" className="flex-grow">
               <InputNumber
                 min={0}
-                defaultValue={element.number}
+                value={element.number}
                 onChange={(value) =>
-                  handleFormElementChange(index, "number", value)
+                  handleFormElementChange(index, "number", value as number)
                 }
+                className="w-full"
               />
             </Form.Item>
             <Button
               onClick={() => deleteFormElement(index)}
               type="primary"
-              className="font-bold py-2 px-4 rounded ml-2"
+              className="self-end mb-6 bg-red-500 hover:bg-red-600 border-none"
               danger
-            >
-              -
-            </Button>
+              icon={<MinusOutlined />}
+            />
           </div>
         ))}
       </Form>
-      <div className="flex flex-row gap-4">
-        <Button onClick={addFormElement} className="text-sm font-bold py-2 px-4 rounded align-middle" type="primary" size="large">
-          +
-        </Button>
+      <div className="flex flex-row gap-4 mb-4">
         <Button
+          onClick={addFormElement}
+          className="flex items-center justify-center bg-slate-700 hover:bg-slate-800 text-white border-none"
           type="primary"
-          onClick={handleGenerateCode}
-          className="bg-green-600 hover:bg-green-400 text-white font-bold py-2 px-4 rounded"
-          size="large"
+          icon={<PlusOutlined />}
         >
-          Generate Code
+          Add Layer
         </Button>
       </div>
       <Modal
@@ -139,4 +135,4 @@ const FCN: FC = () => {
   );
 };
 
-export default FCN;
+export default FCNForm;
