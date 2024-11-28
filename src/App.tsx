@@ -10,7 +10,6 @@ function App() {
     { i: "FCN", x: 6, y: 0, w: 6, h: 6},
     { i: "Code", x: 6, y: 12, w: 6, h: 6},
   ];
-  console.log(window.innerHeight, window.innerWidth);
   return (
     <div className="h-screen overflow-hidden">
       {/* <DiagCodeGrid layout={layout}>
@@ -24,7 +23,7 @@ function App() {
           Code
         </div>
       </DiagCodeGrid> */}
-      <div style={{ height: window.innerHeight / 2, width: window.innerWidth }}/>
+      {/* <div style={{ height: window.innerHeight / 2, width: window.innerWidth }}/> */}
       < CNNVisual width={window.innerWidth} height={window.innerHeight / 2} />
     </div>
   );
