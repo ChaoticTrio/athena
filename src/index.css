@@ -57,7 +57,7 @@ body,
 
 /* Customize Ant Design Tabs */
 .ant-tabs-nav {
-  @apply mb-0;
+  @apply mb-0 !important;
 }
 
 .ant-tabs-tab {
@@ -66,6 +66,10 @@ body,
 
 .ant-tabs-tab-active {
   @apply bg-gray-100;
+}
+
+.ant-input-number-input {
+  @apply text-center !important;
 }
 
 /* Modern scrollbar styles */

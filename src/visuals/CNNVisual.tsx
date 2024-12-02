@@ -1,5 +1,6 @@
 import {
   ColumnHeightOutlined,
+  DownloadOutlined,
   DownOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
@@ -13,6 +14,14 @@ import { Canvas } from "@react-three/fiber";
 import { Button, Segmented, Tooltip } from "antd";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import {
+  CNNLayer,
+  CNNLayerTypes,
+  ConvLayer,
+  InputLayer,
+  PaddingLayer,
+  PoolLayer,
+} from "../types/CNNTypes";
 
 // array of objects with req properties below
 // Input - {
@@ -28,8 +37,6 @@ import * as THREE from "three";
 // }
 // Padding - {
 //   padding: number for [x, x] or number[] for [x, y],
-// }
-// Gap - {
 // }
 // Dropout - {p} - TODO
 // Normalization - {channels} - TODO
@@ -101,7 +108,7 @@ type SpriteProps = {
 function generateDataset(numOfCon?: number): Layer[] {
   console.log("Generating dataset");
   let res: Layer[] = [{ type: "Input", size: [224, 224, 3] }];
-  res.push({ type: "Gap" });
+  // res.push({ type: "Gap" });
   res = res.concat(
     Array.from(Array(numOfCon || 3).keys()).flatMap((e, i): Layer[] => {
       return [
@@ -109,8 +116,8 @@ function generateDataset(numOfCon?: number): Layer[] {
         { type: "Conv", size: Math.pow(2, Math.min(5 + i, 9)), kernel_size: 3 },
         { type: "Padding", padding: 1 },
         { type: "Conv", size: Math.pow(2, Math.min(5 + i, 9)), kernel_size: 3 },
-        { type: "Gap" },
         { type: "Pool", kernel_size: 2, stride: 2 },
+        // { type: "Gap" },
       ];
     })
   );
@@ -122,18 +129,8 @@ function generateDataset(numOfCon?: number): Layer[] {
   return res;
 }
 
-function formatInputLayer(
-  layer: Layer,
-  i: number,
-  currSize: V3
-): ConvertedLayer {
-  if (!Array.isArray(layer.size) || layer.size.length !== 3) {
-    console.error("Invalid input layer size");
-  }
-  if (i !== 0) {
-    console.error("Input layer must be the first layer");
-  }
-  const size = { x: layer.size[2], y: layer.size[0], z: layer.size[1] };
+function formatInputLayer(layer: InputLayer): ConvertedLayer {
+  const size = { x: layer.size[0], y: layer.size[1], z: layer.size[2] };
   return {
     type: "Input",
     size: size,
@@ -143,47 +140,28 @@ function formatInputLayer(
 }
 
 function formatConvLayer(
-  layer: Layer,
+  layer: ConvLayer,
   i: number,
   currSize: V3
 ): ConvertedLayer {
-  // check if layer.size is defined and is a number
-  if (typeof layer.size !== "number") {
-    throw new Error("Invalid conv layer size");
-  }
-  // check if kernel size is not undefined
-  if (layer.kernel_size === undefined) {
-    throw new Error("Kernel size is undefined");
-  } else if (typeof layer.kernel_size === "number") {
-    layer.kernel_size = [layer.kernel_size, layer.kernel_size];
-  } else if (layer.kernel_size.length !== 2) {
-    throw new Error("Invalid kernel size");
-  }
   const size = {
     x: layer.size,
-    y: currSize.y - (layer.kernel_size[0] - 1),
-    z: currSize.z - (layer.kernel_size[1] - 1),
+    y: currSize.y - (layer.kernel[0] - 1),
+    z: currSize.z - (layer.kernel[1] - 1),
   };
   return {
     type: "Conv",
     size: size,
-    infoText: `Conv\n${layer.size}x${layer.kernel_size[0]}x${layer.kernel_size[1]}`,
+    infoText: `Conv\n${layer.size}x${layer.kernel[0]}x${layer.kernel[1]}`,
     sizeText: layerSizeToString(size),
   };
 }
 
 function formatPaddingLayer(
-  layer: Layer,
+  layer: PaddingLayer,
   i: number,
   currSize: V3
 ): ConvertedLayer {
-  if (layer.padding === undefined) {
-    throw new Error("Padding value is undefined");
-  } else if (typeof layer.padding === "number") {
-    layer.padding = [layer.padding, layer.padding];
-  } else if (layer.padding.length !== 2) {
-    throw new Error("Invalid padding size");
-  }
   const newSize = {
     x: currSize.x,
     y: currSize.y + 2 * layer.padding[0],
@@ -198,53 +176,31 @@ function formatPaddingLayer(
 }
 
 function formatPoolingLayer(
-  layer: Layer,
+  layer: PoolLayer,
   i: number,
   currSize: V3
 ): ConvertedLayer {
-  if (layer.kernel_size === undefined) {
-    throw new Error("Kernel size is undefined");
-  } else if (typeof layer.kernel_size === "number") {
-    layer.kernel_size = [layer.kernel_size, layer.kernel_size];
-  } else if (layer.kernel_size.length !== 2) {
-    throw new Error("Invalid kernel size");
-  }
-  if (layer.stride === undefined) {
-    throw new Error("Stride is undefined");
-  } else if (typeof layer.stride === "number") {
-    layer.stride = [layer.stride, layer.stride];
-  } else if (layer.stride.length !== 2) {
-    throw new Error("Invalid stride size");
-  }
   const size = {
     x: currSize.x,
-    y: Math.floor((currSize.y - layer.kernel_size[0]) / layer.stride[0] + 1),
-    z: Math.floor((currSize.z - layer.kernel_size[1]) / layer.stride[1] + 1),
+    y: Math.floor((currSize.y - layer.kernel[0]) / layer.stride[0] + 1),
+    z: Math.floor((currSize.z - layer.kernel[1]) / layer.stride[1] + 1),
   };
   return {
     type: "Pool",
     size: size,
-    infoText: `Pool\n${layer.kernel_size[0]}x${layer.kernel_size[1]}\n${layer.stride[0]}x${layer.stride[1]}`,
+    infoText: `Pool\n${layer.kernel[0]}x${layer.kernel[1]}\n${layer.stride[0]}x${layer.stride[1]}`,
     sizeText: layerSizeToString(size),
   };
 }
 
 const layerFormatters: Record<
-  string,
-  (layer: Layer, index: number, prevSize: V3) => ConvertedLayer
+  CNNLayerTypes,
+  (layer: any, index: number, prevSize: V3) => ConvertedLayer
 > = {
   Input: formatInputLayer,
   Conv: formatConvLayer,
   Padding: formatPaddingLayer,
   Pool: formatPoolingLayer,
-  Gap: (): ConvertedLayer => {
-    return {
-      type: "Gap",
-      size: { x: 30, y: 0, z: 0 },
-      infoText: "",
-      sizeText: "",
-    };
-  },
 } as const;
 
 function calcChannelWidth(n: number): number {
@@ -541,7 +497,7 @@ function Sprite({
   );
 }
 
-function CNNLayer({
+function CNNLayerBox({
   layer,
   prevEdge,
   k,
@@ -601,7 +557,7 @@ function CNNLayer({
   );
 }
 
-function GapLayer({
+function GapLayerBox({
   prevLayer,
   nextLayer,
   k,
@@ -661,7 +617,7 @@ function calcBoxSize(size: V3, layerScaling: LAYER_SCALE) {
 }
 
 function getMeshes(
-  dataset: Layer[],
+  dataset: CNNLayer[],
   width: number,
   height: number,
   config: {
@@ -725,7 +681,7 @@ function getMeshes(
           return [];
         }
         res.push(
-          <GapLayer
+          <GapLayerBox
             key={k.i++}
             prevLayer={{
               x: prevLayerEndX,
@@ -742,7 +698,12 @@ function getMeshes(
         );
       } else {
         res.push(
-          <CNNLayer key={k.i++} layer={layer} prevEdge={prevLayerEndX} k={k} />
+          <CNNLayerBox
+            key={k.i++}
+            layer={layer}
+            prevEdge={prevLayerEndX}
+            k={k}
+          />
         );
       }
 
@@ -791,33 +752,70 @@ function getMeshes(
 }
 
 // Entry point for CNN visual, takes in width and height of the canvas, needs to be replaced with a prop or return a update function
-function CNNVisual({ width, height }: { width: number; height: number }) {
-  const [dataset, setDataset] = useState(generateDataset());
+function CNNVisual({
+  layers,
+  toggleMaximize,
+  maximizeState,
+  width,
+  height,
+}: {
+  layers: CNNLayer[];
+  toggleMaximize: () => void;
+  maximizeState: boolean;
+  width: number;
+  height: number;
+}) {
   const [showText, setShowText] = useState<
     "none" | "up" | "down" | "alt" | "slant"
   >("alt");
   const [showLines, setShowLines] = useState(true);
-  const [full, setFull] = useState(false);
-
   const layerScaling = "linear";
-  const { res, zoom } = getMeshes(dataset, width, height, {
-    layerScaling: layerScaling,
-    showText: showText,
-    showLines: showLines,
-  });
+  const [zoomState, setZoomState] = useState(1);
+  const [resState, setResState] = useState<JSX.Element[]>([]);
+
+  const downloadSceneAsImage = () => {
+    const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+
+    if (canvas) {
+      requestAnimationFrame(() => {
+        const link = document.createElement("a");
+        link.setAttribute("download", `cnn-viz.png`);
+        link.setAttribute("href", canvas.toDataURL("image/png"));
+        link.click();
+        link.remove();
+      });
+    } else {
+      console.error("Canvas element not found");
+    }
+  };
+
+  useEffect(() => {
+    const { res, zoom } =
+      layers.length > 0
+        ? getMeshes(layers, width, height, {
+            layerScaling: layerScaling,
+            showText: showText,
+            showLines: showLines,
+          })
+        : { res: [<></>], zoom: 1 };
+    setResState(res);
+    setZoomState(zoom);
+  }, [layers]);
 
   return (
     <div
       id="canvas-container"
-      className=""
+      className="relative"
       style={{
         overflow: "hidden",
-        width: full ? innerWidth : width,
-        height: full ? innerHeight : height,
+        // width: full ? innerWidth : '100%',
+        width: "100%",
+        // height: full ? innerHeight : '100%',
+        height: "100%",
         backgroundColor: "white",
         border: "2px solid black",
         transition: "all 0.3s ease",
-        zIndex: full ? 20 : 0,
+        // zIndex: full ? 20 : 0,
       }}
     >
       <Segmented
@@ -849,23 +847,41 @@ function CNNVisual({ width, height }: { width: number; height: number }) {
         }}
         // style={{ visibility: showText === "none" ? "hidden" : "visible" }}
       />
-      <Tooltip placement="bottomLeft" title={full ? "Minimize" : "Fullscreen"}>
+
+      <Tooltip placement="left" title="Download">
         <Button
-          className="absolute z-10 right-0 m-2 border-2 border-slate-500"
-          icon={full ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+          className="absolute z-10 right-10 m-2 border-2 border-slate-500 "
+          icon={<DownloadOutlined />}
           size="middle"
           variant="outlined"
-          onClick={() => {
-            setFull(!full);
-          }}
+          onClick={downloadSceneAsImage}
         />
       </Tooltip>
-      <Canvas className="z-0">
+      <Tooltip
+        placement="bottomRight"
+        title={maximizeState ? "Minimize" : "Maximize"}
+      >
+        <Button
+          className="absolute z-10 right-0 m-2 border-2 border-slate-500"
+          icon={
+            maximizeState ? <FullscreenExitOutlined /> : <FullscreenOutlined />
+          }
+          size="middle"
+          variant="outlined"
+          onClick={toggleMaximize}
+        />
+      </Tooltip>
+      <Canvas
+        className="z-0"
+        onCreated={(state) => {
+          state.gl.setClearColor("white");
+        }}
+      >
         <ambientLight intensity={2} />
         {/* <directionalLight color="red" position={[1, 1, 5]} /> */}
         <OrthographicCamera
           makeDefault
-          zoom={zoom}
+          zoom={zoomState}
           top={height / 2}
           bottom={-height / 2}
           left={-width / 2 + 0}
@@ -875,7 +891,7 @@ function CNNVisual({ width, height }: { width: number; height: number }) {
           position={[0, 0, Math.max(width, height)]}
         />
         <OrbitControls />
-        {res}
+        {resState}
       </Canvas>
     </div>
   );
