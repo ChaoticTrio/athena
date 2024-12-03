@@ -1,10 +1,9 @@
 import { MinusOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, Form, InputNumber, Modal, Select } from "antd";
-import { useState } from "react";
+import { Button, Form, InputNumber, Select } from "antd";
 import {
+  cnnEmptyLayers,
   CNNLayer,
   ConvLayer,
-  cnnEmptyLayers,
   InputLayer,
   PaddingLayer,
   PoolLayer,
@@ -183,12 +182,6 @@ function CNNForm({
     const newFormElements = cnnLayers.filter((_, i) => i !== index);
     setCnnLayers(newFormElements);
   };
-
-  // Function that validates the form
-  // For now, it just checks if all the form elements are filled
-  // const validateForm = () => {
-  //   return cnnLayers.every((formElement) => formElement.number > 0);
-  // };
 
   return (
     <div className="flex flex-col items-center h-full overflow-auto scrollbar-hide bg-white">
