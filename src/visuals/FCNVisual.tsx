@@ -1,11 +1,11 @@
-import { Button } from "antd";
-import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
+import { useEffect, useRef } from "react";
+import { FCNLayer, FCNLayerTypes } from "../types/FCNTypes";
 
 type Layer = {
   type: string;
-  size: number;
-  activtion?: string;
+  size: number; // always display size
+  label?: string; // "Input", activation function, "Dropout", "Output"
 };
 
 type Point = {
@@ -208,16 +208,48 @@ function generateDataset(numOfLayers?: number): Layer[] {
 }
 
 // Entry point, might need to replace dataset with a prop or return an update function
-function FCNVisual() {
-  const [dataset, setDataset] = useState(generateDataset());
-
+function FCNVisual({ fcnLayers }: { fcnLayers: FCNLayer[] }): JSX.Element {
   const nodeRef = useRef();
   const pathRef = useRef();
   const svgViewport = 1000;
   const transitionDuration = 500;
 
   useEffect(() => {
-    const { paths, nodes } = getPathAndNodeData(dataset, 1000);
+    console.log("updating fcn visual");
+    let prevSize = 0;
+    const layers: Layer[] = fcnLayers.map((layer) => {
+      switch (layer.type) {
+        case FCNLayerTypes.Input:
+          prevSize = layer.size;
+          return {
+            type: layer.type as string,
+            size: layer.size,
+            label: "Input",
+          };
+        case FCNLayerTypes.Dense:
+          prevSize = layer.size;
+          return {
+            type: layer.type as string,
+            size: layer.size,
+            label: layer.activation,
+          };
+        case FCNLayerTypes.Dropout:
+          return {
+            type: layer.type as string,
+            size: prevSize,
+            label: layer.rate.toString(),
+          };
+        case FCNLayerTypes.Output:
+          return {
+            type: layer.type as string,
+            size: layer.size,
+            label: "Output",
+          };
+        default:
+          return { type: "", size: 0 };
+      }
+    });
+    const { paths, nodes } = getPathAndNodeData(layers, 1000);
     d3.select(pathRef.current)
       .selectAll("path")
       .data(paths)
@@ -337,17 +369,10 @@ function FCNVisual() {
                 .remove()
             )
       );
-  }, [dataset]);
+  }, [fcnLayers]);
 
   return (
     <div className="h-fit overflow-auto">
-      <Button
-        type="primary"
-        className="flex items-center justify-center bg-slate-700 hover:bg-slate-800 text-white border-none"
-        onClick={() => setDataset(generateDataset(getRandomInt(2, 4)))}
-      >
-        Button
-      </Button>
       <svg
         viewBox={"0 0 " + svgViewport + " " + svgViewport}
         width="750"

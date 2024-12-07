@@ -1,114 +1,222 @@
-import React, { FC, useState } from "react";
-import { Form, Select, InputNumber, Button, Modal } from "antd";
-import { PlusOutlined, MinusOutlined } from "@ant-design/icons";
+import { MinusOutlined, PlusOutlined } from "@ant-design/icons";
+import { Button, Form, InputNumber, Select } from "antd";
+import {
+  DenseLayer,
+  DropoutLayer,
+  FCNActivationFunctions,
+  fcnEmptyLayers,
+  FCNLayer,
+  InputLayer,
+  OutputLayer,
+} from "../types/FCNTypes";
 
 const { Option } = Select;
 
-interface FormElement {
-  select1: string;
-  select2: string;
-  number: number;
+function inputElementForm(
+  element: InputLayer,
+  index: number,
+  handleFormElementChange: (index: number, element: FCNLayer) => void
+): JSX.Element {
+  return (
+    <>
+      <Form.Item label="Size" className="my-auto">
+        <InputNumber
+          min={0}
+          value={element.size}
+          onChange={(value) => {
+            element.size = value as number;
+            handleFormElementChange(index, element);
+          }}
+          controls={false}
+          className="w-16 h-8 mx-0.5"
+        />
+      </Form.Item>
+    </>
+  );
 }
 
-const options1 = ["Input", "Flatten", "Linear", "Dropout"];
-const options2 = ["RELU", "Sigmoid", "Tanh", "Softmax"];
+function denseElementForm(
+  element: DenseLayer,
+  index: number,
+  handleFormElementChange: (index: number, element: FCNLayer) => void
+): JSX.Element {
+  return (
+    <>
+      <Form.Item label="Size" className="my-auto">
+        <InputNumber
+          min={0}
+          value={element.size}
+          onChange={(value) => {
+            element.size = value as number;
+            handleFormElementChange(index, element);
+          }}
+          controls={false}
+          className="w-16 h-8 mx-0.5"
+        />
+      </Form.Item>
+      <Form.Item label="Activation" className="my-auto">
+        <Select
+          value={element.activation}
+          className="w-24 hover:border-slate-500"
+          onChange={(value) => {
+            element.activation = value as FCNActivationFunctions;
+            handleFormElementChange(index, element);
+          }}
+        >
+          {actFuncs.map((option) => (
+            <Option key={option} value={option} className="text-slate-700">
+              {option}
+            </Option>
+          ))}
+        </Select>
+      </Form.Item>
+    </>
+  );
+}
 
-const FCNForm: FC = () => {
-  const [formElements, setFormElements] = useState<FormElement[]>([
-    { select1: options1[0], select2: options2[0], number: 0 },
-  ]);
+function dropoutElementForm(
+  element: DropoutLayer,
+  index: number,
+  handleFormElementChange: (index: number, element: FCNLayer) => void
+): JSX.Element {
+  return (
+    <>
+      <Form.Item label="Rate" className="my-auto">
+        <InputNumber
+          min={0}
+          max={1}
+          step={0.1}
+          value={element.rate}
+          onChange={(value) => {
+            element.rate = value as number;
+            handleFormElementChange(index, element);
+          }}
+          controls={false}
+          className="w-16 h-8 mx-0.5"
+        />
+      </Form.Item>
+    </>
+  );
+}
 
-  const [isDialogOpen, setDialogOpen] = useState(false);
+function outputElementForm(
+  element: OutputLayer,
+  index: number,
+  handleFormElementChange: (index: number, element: FCNLayer) => void
+): JSX.Element {
+  return (
+    <>
+      <Form.Item label="Size" className="my-auto">
+        <InputNumber
+          min={0}
+          value={element.size}
+          onChange={(value) => {
+            element.size = value as number;
+            handleFormElementChange(index, element);
+          }}
+          controls={false}
+          className="w-16 h-8 mx-0.5"
+        />
+      </Form.Item>
+      <Form.Item label="Activation" className="my-auto">
+        <Select
+          value={element.activation}
+          className="w-24 hover:border-slate-500"
+          onChange={(value) => {
+            element.activation = value as FCNActivationFunctions;
+            handleFormElementChange(index, element);
+          }}
+        >
+          {actFuncs.map((option) => (
+            <Option key={option} value={option} className="text-slate-700">
+              {option}
+            </Option>
+          ))}
+        </Select>
+      </Form.Item>
+    </>
+  );
+}
 
-  // const handleGenerateCode = () => {
-  //   if (!validateForm()) {
-  //     setDialogOpen(true);
-  //     return;
-  //   }
-  //   console.log(formElements);
-  // };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-  };
-
-  const handleFormElementChange = <K extends keyof FormElement>(
+const layerFormatters: Record<
+  string,
+  (
+    element: any,
     index: number,
-    key: K,
-    value: FormElement[K]
-  ) => {
-    const newFormElements = [...formElements];
-    newFormElements[index][key] = value;
-    setFormElements(newFormElements);
+    handleFormElementChange: (index: number, element: FCNLayer) => void
+  ) => JSX.Element
+> = {
+  Input: inputElementForm,
+  Dense: denseElementForm,
+  Dropout: dropoutElementForm,
+  Output: outputElementForm,
+} as const;
+
+const layerOptions = ["Dense", "Dropout", "Output"];
+const actFuncs = Object.keys(FCNActivationFunctions);
+
+function FCNForm({
+  fcnLayers,
+  setFcnLayers,
+}: {
+  fcnLayers: FCNLayer[];
+  setFcnLayers: (fcnLayers: FCNLayer[]) => void;
+}): JSX.Element {
+  const handleFormElementChange = (index: number, element: FCNLayer) => {
+    const newFormElements = [...fcnLayers];
+    newFormElements[index] = element;
+    setFcnLayers(newFormElements);
   };
 
   const addFormElement = () => {
-    setFormElements([
-      ...formElements,
-      { select1: options1[0], select2: options2[0], number: 0 },
-    ]);
+    setFcnLayers([...fcnLayers, fcnEmptyLayers.Dense()]);
   };
 
   const deleteFormElement = (index: number) => {
-    const newFormElements = formElements.filter((_, i) => i !== index);
-    setFormElements(newFormElements);
+    const newFormElements = fcnLayers.filter((_, i) => i !== index);
+    setFcnLayers(newFormElements);
   };
-
-  // Function that validates the form
-  // For now, it just checks if all the form elements are filled
-  // const validateForm = () => {
-  //   return formElements.every((formElement) => formElement.number > 0);
-  // };
 
   return (
     <div className="flex flex-col items-center h-full overflow-auto scrollbar-hide bg-white">
       <Form className="flex flex-col items-center w-full p-4 space-y-4">
-        {formElements.map((element, index) => (
-          <div key={index} className="flex flex-row gap-5 w-full bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200">
-            <Form.Item label="Select 1" className="flex-grow">
+        {fcnLayers.map((element, index) => (
+          <div
+            key={index}
+            className="flex flex-row w-full bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200 justify-start gap-4 items-center"
+          >
+            <Form.Item label="Type" className="my-auto">
               <Select
-                value={element.select1}
-                className="w-full hover:border-slate-500"
-                onChange={(value) => handleFormElementChange(index, "select1", value)}
+                value={element.type}
+                className="w-24 hover:border-slate-500"
+                onChange={(value) =>
+                  handleFormElementChange(index, fcnEmptyLayers[value]())
+                }
+                disabled={index === 0}
               >
-                {options1.map((option) => (
-                  <Option key={option} value={option} className="text-slate-700">
+                {layerOptions.map((option) => (
+                  <Option
+                    key={option}
+                    value={option}
+                    className="text-slate-700"
+                  >
                     {option}
                   </Option>
                 ))}
               </Select>
             </Form.Item>
-            <Form.Item label="Select 2" className="flex-grow">
-              <Select
-                value={element.select2}
-                className="w-full text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                onChange={(value) =>
-                  handleFormElementChange(index, "select2", value)
-                }
-              >
-                {options2.map((option) => (
-                  <Option key={option} value={option} className="text-sm">
-                    {option}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-            <Form.Item label="Number" className="flex-grow">
-              <InputNumber
-                min={0}
-                value={element.number}
-                onChange={(value) =>
-                  handleFormElementChange(index, "number", value as number)
-                }
-                className="w-full"
-              />
-            </Form.Item>
+            {layerFormatters[element.type]?.(
+              element,
+              index,
+              handleFormElementChange
+            )}
             <Button
               onClick={() => deleteFormElement(index)}
               type="primary"
-              className="self-end mb-6 bg-red-500 hover:bg-red-600 border-none"
+              className="ml-auto my-auto border-none"
               danger
               icon={<MinusOutlined />}
+              disabled={index === 0}
             />
           </div>
         ))}
@@ -123,16 +231,8 @@ const FCNForm: FC = () => {
           Add Layer
         </Button>
       </div>
-      <Modal
-        title="Validation Error"
-        open={isDialogOpen}
-        onOk={handleCloseDialog}
-        onCancel={handleCloseDialog}
-      >
-        <p>Form validation failed. Please check your input and try again.</p>
-      </Modal>
     </div>
   );
-};
+}
 
 export default FCNForm;

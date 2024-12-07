@@ -3,10 +3,14 @@ import {
   DownloadOutlined,
   QuestionCircleOutlined,
 } from "@ant-design/icons";
-import { Button, Radio, Tabs, Tooltip, Splitter } from "antd";
+import { Button, Radio, Splitter, Tabs, Tooltip } from "antd";
 import { useState } from "react";
+import CNNForm from "./components/CNNForm";
 import CodeEditor from "./components/CodeEditor";
 import FCNForm from "./components/FCNForm";
+import { cnnEmptyLayers, CNNLayer } from "./types/CNNTypes";
+import { fcnEmptyLayers, FCNLayer } from "./types/FCNTypes";
+import CNNVisual from "./visuals/CNNVisual";
 import FCNVisual from "./visuals/FCNVisual";
 
 enum MODEL_TYPE {
@@ -31,6 +35,15 @@ function App() {
   const [activeTab, setActiveTab] = useState<MODEL_TYPE>(MODEL_TYPE.FCN);
   const [framework, setFramework] = useState<FRAMEWORK>(FRAMEWORK.PyTorch);
   const [kerasType, setKerasType] = useState<KERAS_TYPE>(KERAS_TYPE.Sequential);
+  const [maximizeViz, setMaximizeViz] = useState(false);
+  const [cnnLayersForm, setCnnLayersForm] = useState<CNNLayer[]>([
+    cnnEmptyLayers.Input(),
+  ]);
+  const [cnnLayers, setCnnLayers] = useState<CNNLayer[]>([]);
+  const [fcnLayersForm, setFcnLayersForm] = useState<FCNLayer[]>([
+    fcnEmptyLayers.Input(),
+  ]);
+  const [fcnLayers, setFcnLayers] = useState<FCNLayer[]>([]);
 
   const renderForm = () => {
     return (
@@ -57,7 +70,12 @@ function App() {
                   {MODEL_TYPE.FCN}
                 </span>
               ),
-              children: <FCNForm />,
+              children: (
+                <FCNForm
+                  fcnLayers={fcnLayersForm}
+                  setFcnLayers={setFcnLayersForm}
+                />
+              ),
             },
             {
               key: MODEL_TYPE.CNN,
@@ -72,7 +90,13 @@ function App() {
                   {MODEL_TYPE.CNN}
                 </span>
               ),
-              children: <div>CNN Form</div>,
+              children: (
+                <CNNForm
+                  cnnLayers={cnnLayersForm}
+                  setCnnLayers={setCnnLayersForm}
+                />
+              ),
+              // children: <div>Coming Soon</div>,
             },
             {
               key: MODEL_TYPE.XXX,
@@ -98,9 +122,17 @@ function App() {
   const renderVisual = () => {
     switch (activeTab) {
       case "FCN":
-        return <FCNVisual />;
+        return <FCNVisual fcnLayers={fcnLayers} />;
       case "CNN":
-        return <div>CNN Visual</div>;
+        return (
+          <CNNVisual
+            layers={cnnLayers}
+            toggleMaximize={() => setMaximizeViz(!maximizeViz)}
+            maximizeState={maximizeViz}
+            width={window.innerWidth / 2}
+            height={window.innerHeight / 1}
+          />
+        );
       default:
         return <div>Coming Soon</div>;
     }
@@ -150,13 +182,22 @@ function App() {
     );
   };
 
+  const generate = () => {
+    if (activeTab === MODEL_TYPE.CNN) {
+      setCnnLayers(structuredClone(cnnLayersForm));
+    } else if (activeTab === MODEL_TYPE.FCN) {
+      setFcnLayers(structuredClone(fcnLayersForm));
+    } else {
+      console.log("Coming Soon");
+    }
+  };
   return (
     <div className="app-container min-h-screen bg-slate-50">
       <div className="header flex items-center justify-between p-4 bg-white border-b border-slate-200">
         <Button
           type="primary"
           className="bg-slate-700 hover:bg-slate-800 border-none generate-button"
-          onClick={() => console.log("Generate clicked")}
+          onClick={generate}
         >
           Generate
         </Button>
@@ -173,8 +214,14 @@ function App() {
       <Splitter
         style={{ height: "100vh", boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)" }}
       >
-        <Splitter.Panel collapsible>{renderVisual()}</Splitter.Panel>
-        <Splitter.Panel>
+        <Splitter.Panel className={maximizeViz ? "basis-full" : ""}>
+          {renderVisual()}
+        </Splitter.Panel>
+        <Splitter.Panel
+          collapsible
+          className={maximizeViz ? "ant-splitter-panel-hidden basis-0" : ""}
+          // style={{ flexBasis: maximizeViz ? "0" :  }}
+        >
           <Splitter layout="vertical">
             <Splitter.Panel>{renderForm()}</Splitter.Panel>
             <Splitter.Panel>{renderCode()}</Splitter.Panel>
