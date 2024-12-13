@@ -22,14 +22,22 @@ function getNodeCenter(layerInd: number, nodeNum: number): Point {
   return { x: layerInd * 300 + 100, y: nodeNum * 75 + 25 };
 }
 
+const SPLIT_THRESHOLD = 10;
 function getLayerNodes(layer: Layer, layerInd: number) {
   const nodes: Point[] = [];
-  for (let i = 0; i < layer.size; i++) {
+  const isSplit = layer.size > SPLIT_THRESHOLD;
+  let size = Math.min(layer.size, SPLIT_THRESHOLD);
+  for (let i = 0; i < size; i++) {
     nodes.push(getNodeCenter(layerInd, i));
   }
+  if (isSplit) {
+    // remove element at index 4 and 5
+    nodes.splice(4, 2);
+    size -= 2;
+  }
   const layerCenter = {
-    x: (nodes[0].x + nodes[layer.size - 1].x) / 2,
-    y: (nodes[0].y + nodes[layer.size - 1].y) / 2,
+    x: (nodes[0].x + nodes[size - 1].x) / 2,
+    y: (nodes[0].y + nodes[size - 1].y) / 2,
   };
   return { nodes, layerCenter };
 }

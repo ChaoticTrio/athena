@@ -17,22 +17,21 @@ function inputElementForm(
   handleFormElementChange: (index: number, element: CNNLayer) => void
 ): JSX.Element {
   return (
-    <>
-      <Form.Item label="Size" className="my-auto">
-        {[0, 1, 2].map((i) => (
-          <InputNumber
-            min={0}
-            value={element.size[i]}
-            onChange={(value) => {
-              element.size[i] = value as number;
-              handleFormElementChange(index, element);
-            }}
-            controls={false}
-            className="w-16 h-8 mx-0.5"
-          />
-        ))}
-      </Form.Item>
-    </>
+    <Form.Item key="2" label="Size" className="my-auto">
+      {[0, 1, 2].map((i) => (
+        <InputNumber
+          key={i}
+          min={0}
+          value={element.size[i]}
+          onChange={(value) => {
+            element.size[i] = value as number;
+            handleFormElementChange(index, element);
+          }}
+          controls={false}
+          className="w-16 h-8 mx-0.5"
+        />
+      ))}
+    </Form.Item>
   );
 }
 
@@ -43,7 +42,7 @@ function cnnElementForm(
 ): JSX.Element {
   return (
     <>
-      <Form.Item label="Size" className="my-auto">
+      <Form.Item key="2" label="Size" className="my-auto">
         <InputNumber
           min={0}
           value={element.size}
@@ -55,9 +54,10 @@ function cnnElementForm(
           className="w-16 h-8 mx-0.5"
         />
       </Form.Item>
-      <Form.Item label="Kernel" className="my-auto">
+      <Form.Item key="3" label="Kernel" className="my-auto">
         {[0, 1].map((i) => (
           <InputNumber
+            key={i}
             min={0}
             value={element.kernel[i]}
             onChange={(value) => {
@@ -80,9 +80,10 @@ function poolingElementForm(
 ): JSX.Element {
   return (
     <>
-      <Form.Item label="Stride" className="my-auto">
+      <Form.Item key="2" label="Stride" className="my-auto">
         {[0, 1].map((i) => (
           <InputNumber
+            key={i}
             min={0}
             value={element.stride[i]}
             onChange={(value) => {
@@ -94,9 +95,10 @@ function poolingElementForm(
           />
         ))}
       </Form.Item>
-      <Form.Item label="Kernel" className="my-auto">
+      <Form.Item key="3" label="Kernel" className="my-auto">
         {[0, 1].map((i) => (
           <InputNumber
+            key={i}
             min={0}
             value={element.kernel[i]}
             onChange={(value) => {
@@ -119,9 +121,10 @@ function paddingElementForm(
 ): JSX.Element {
   return (
     <>
-      <Form.Item label="Padding" className="my-auto">
+      <Form.Item key="2" label="Padding" className="my-auto">
         {[0, 1].map((i) => (
           <InputNumber
+            key={i}
             min={1}
             value={element.padding[i]}
             onChange={(value) => {
@@ -191,7 +194,7 @@ function CNNForm({
             key={index}
             className="flex flex-row w-full bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200 justify-start gap-4 items-center"
           >
-            <Form.Item label="Type" className="my-auto">
+            <Form.Item key="1" label="Type" className="my-auto">
               <Select
                 value={element.type}
                 className="w-24 hover:border-slate-500"
@@ -200,12 +203,8 @@ function CNNForm({
                 }
                 disabled={index === 0}
               >
-                {options1.map((option) => (
-                  <Option
-                    key={option}
-                    value={option}
-                    className="text-slate-700"
-                  >
+                {options1.map((option, i) => (
+                  <Option key={i} value={option} className="text-slate-700">
                     {option}
                   </Option>
                 ))}
