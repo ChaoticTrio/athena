@@ -9,9 +9,17 @@ import CNNForm from "./components/CNNForm";
 import CodeEditor from "./components/CodeEditor";
 import FCNForm from "./components/FCNForm";
 import { cnnEmptyLayers, CNNLayer } from "./types/CNNTypes";
-import { fcnEmptyLayers, FCNLayer } from "./types/FCNTypes";
+import { DenseLayer, FCNLayer, InputLayer } from "./types/FCNTypes";
 import CNNVisual from "./visuals/CNNVisual";
 import FCNVisual from "./visuals/FCNVisual";
+
+const fontFace = new FontFace(
+  "JetBrainsMono",
+  'url("/JetBrainsMono-Regular.ttf")'
+);
+fontFace.load().then((font) => {
+  document.fonts.add(font);
+});
 
 enum MODEL_TYPE {
   FCN = "FCN",
@@ -41,7 +49,10 @@ function App() {
   ]);
   const [cnnLayers, setCnnLayers] = useState<CNNLayer[]>([]);
   const [fcnLayersForm, setFcnLayersForm] = useState<FCNLayer[]>([
-    fcnEmptyLayers.Input(),
+    { type: "Input", size: 8 } as InputLayer,
+    { type: "Dense", size: 12, activation: "ReLU" } as DenseLayer,
+    { type: "Dense", size: 12, activation: "ReLU" } as DenseLayer,
+    { type: "Dense", size: 8, activation: "ReLU" } as DenseLayer,
   ]);
   const [fcnLayers, setFcnLayers] = useState<FCNLayer[]>([]);
 
@@ -122,7 +133,13 @@ function App() {
   const renderVisual = () => {
     switch (activeTab) {
       case "FCN":
-        return <FCNVisual fcnLayers={fcnLayers} />;
+        return (
+          <FCNVisual
+            fcnLayers={fcnLayers}
+            toggleMaximize={() => setMaximizeViz(!maximizeViz)}
+            maximizeState={maximizeViz}
+          />
+        );
       case "CNN":
         return (
           <CNNVisual

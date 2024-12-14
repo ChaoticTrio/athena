@@ -232,14 +232,6 @@ function roundRect(
   ctx.stroke();
 }
 
-const fontFace = new FontFace(
-  "JetBrainsMono",
-  'url("/JetBrainsMono-Regular.ttf")'
-);
-fontFace.load().then((font) => {
-  document.fonts.add(font);
-});
-
 // source - https://github.com/vasturiano/three-spritetext/blob/master/src/index.js
 function Sprite({
   msg,
@@ -797,10 +789,10 @@ function CNNVisual({
             showText: showText,
             showLines: showLines,
           })
-        : { res: [<></>], zoom: 1 };
+        : { res: [], zoom: 1 };
     setResState(res);
     setZoomState(zoom);
-  }, [layers]);
+  }, [layers, showLines, showText]);
 
   return (
     <div
@@ -819,6 +811,7 @@ function CNNVisual({
       }}
     >
       <Segmented
+        key={1}
         className="absolute m-2 z-10 border-slate-500 border-2"
         vertical
         options={[
@@ -834,6 +827,7 @@ function CNNVisual({
         }}
       />
       <Segmented
+        key={2}
         className="absolute left-14 m-2 z-10 border-slate-500 border-2"
         vertical
         options={[
@@ -848,7 +842,7 @@ function CNNVisual({
         // style={{ visibility: showText === "none" ? "hidden" : "visible" }}
       />
 
-      <Tooltip placement="left" title="Download">
+      <Tooltip key={3} placement="left" title="Download">
         <Button
           className="absolute z-10 right-10 m-2 border-2 border-slate-500 "
           icon={<DownloadOutlined />}
@@ -858,6 +852,7 @@ function CNNVisual({
         />
       </Tooltip>
       <Tooltip
+        key={4}
         placement="bottomRight"
         title={maximizeState ? "Minimize" : "Maximize"}
       >
@@ -872,9 +867,11 @@ function CNNVisual({
         />
       </Tooltip>
       <Canvas
+        key={5}
         className="z-0"
         onCreated={(state) => {
           state.gl.setClearColor("white");
+          state.scene.background = new THREE.Color("#f0f0f0");
         }}
       >
         <ambientLight intensity={2} />

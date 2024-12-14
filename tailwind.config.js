@@ -17,6 +17,9 @@ export default {
           900: "#0f172a",
         },
       },
+      fontFamily: {
+        custom: ["JetBrainsMono", "monospace"],
+      },
     },
   },
   plugins: [
