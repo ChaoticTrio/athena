@@ -3,13 +3,13 @@ import {
   DownloadOutlined,
   QuestionCircleOutlined,
 } from "@ant-design/icons";
-import { Button, Radio, Splitter, Tabs, Tooltip } from "antd";
+import { Button, message, Radio, Splitter, Tabs, Tooltip } from "antd";
 import { useState } from "react";
 import CNNForm from "./components/CNNForm";
 import CodeEditor from "./components/CodeEditor";
 import FCNForm from "./components/FCNForm";
 import { cnnEmptyLayers, CNNLayer } from "./types/CNNTypes";
-import { DenseLayer, FCNLayer, InputLayer } from "./types/FCNTypes";
+import { fcnEmptyLayers, FCNLayer } from "./types/FCNTypes";
 import CNNVisual from "./visuals/CNNVisual";
 import FCNVisual from "./visuals/FCNVisual";
 
@@ -39,6 +39,88 @@ enum KERAS_TYPE {
   Subclassing = "Subclassing",
 }
 
+function validateFCNLayers(layers: FCNLayer[]) {
+  if (layers[0].type !== "Input") {
+    return { success: false, content: "First layer must be an input layer" };
+  }
+  for (let i = 1; i < layers.length; i++) {
+    if (layers[i].type === "Input") {
+      return { success: false, content: "Input layer must be the first layer" };
+    }
+  }
+  if (layers[layers.length - 1].type !== "Output") {
+    return { success: false, content: "Last layer must be an output layer" };
+  }
+  for (let i = 0; i < layers.length; i++) {
+    if (layers[i].type === "Dropout") {
+      if (layers[i - 1].type !== "Dense") {
+        return {
+          success: false,
+          content: "Dropout layers must be preceded by a dense layer",
+        };
+      }
+    }
+  }
+  return { success: true, content: "" };
+}
+
+function validateCNNLayers(layers: CNNLayer[]) {
+  let flattenIndex = -1;
+  if (layers[0].type !== "Input") {
+    return { success: false, content: "First layer must be an input layer" };
+  }
+  if (layers[layers.length - 1].type !== "Output") {
+    return { success: false, content: "Last layer must be an output layer" };
+  }
+  for (let i = 1; i < layers.length - 1; i++) {
+    switch (layers[i].type) {
+      case "Input":
+        return {
+          success: false,
+          content: "Input layer must be the first layer",
+        };
+      case "Flatten":
+        if (flattenIndex !== -1) {
+          return {
+            success: false,
+            content: "Only one flatten layer is allowed",
+          };
+        }
+        flattenIndex = i;
+        break;
+      case "Dropout":
+        if (layers[i - 1].type !== "Dense") {
+          return {
+            success: false,
+            content: "Dropout layers must be preceded by a dense layer",
+          };
+        }
+        break;
+      case "Dense":
+        if (flattenIndex === -1) {
+          return {
+            success: false,
+            content: "Dense layers must come after a flatten layer",
+          };
+        }
+        break;
+      case "Output":
+        return {
+          success: false,
+          content: "Output layer must be the last layer",
+        };
+      // TODO
+      // case "Conv":
+      // case "Pooling":
+      // case "Padding":
+      default:
+        break;
+    }
+  }
+
+  return { success: true, content: "" };
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState<MODEL_TYPE>(MODEL_TYPE.FCN);
   const [framework, setFramework] = useState<FRAMEWORK>(FRAMEWORK.PyTorch);
@@ -49,14 +131,13 @@ function App() {
   ]);
   const [cnnLayers, setCnnLayers] = useState<CNNLayer[]>([]);
   const [fcnLayersForm, setFcnLayersForm] = useState<FCNLayer[]>([
-    { type: "Input", size: 8 } as InputLayer,
-    { type: "Dense", size: 12, activation: "ReLU" } as DenseLayer,
-    { type: "Dense", size: 12, activation: "ReLU" } as DenseLayer,
-    { type: "Dense", size: 8, activation: "ReLU" } as DenseLayer,
+    fcnEmptyLayers.Input(),
   ]);
   const [fcnLayers, setFcnLayers] = useState<FCNLayer[]>([]);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const renderForm = () => {
+    console.log("rendering form");
     return (
       <div className="h-full">
         <Tabs
@@ -107,7 +188,6 @@ function App() {
                   setCnnLayers={setCnnLayersForm}
                 />
               ),
-              // children: <div>Coming Soon</div>,
             },
             {
               key: MODEL_TYPE.XXX,
@@ -131,6 +211,7 @@ function App() {
   };
 
   const renderVisual = () => {
+    console.log("rendering visual");
     switch (activeTab) {
       case "FCN":
         return (
@@ -201,15 +282,34 @@ function App() {
 
   const generate = () => {
     if (activeTab === MODEL_TYPE.CNN) {
-      setCnnLayers(structuredClone(cnnLayersForm));
+      const { success, content } = validateCNNLayers(cnnLayersForm);
+      if (success) {
+        setCnnLayers(structuredClone(cnnLayersForm));
+      } else {
+        messageApi.open({
+          type: "error",
+          content: content,
+          duration: 2,
+        });
+      }
     } else if (activeTab === MODEL_TYPE.FCN) {
-      setFcnLayers(structuredClone(fcnLayersForm));
+      const { success, content } = validateFCNLayers(fcnLayersForm);
+      if (success) {
+        setFcnLayers(structuredClone(fcnLayersForm));
+      } else {
+        messageApi.open({
+          type: "error",
+          content: content,
+          duration: 2,
+        });
+      }
     } else {
       console.log("Coming Soon");
     }
   };
   return (
     <div className="app-container min-h-screen bg-slate-50">
+      {contextHolder}
       <div className="header flex items-center justify-between p-4 bg-white border-b border-slate-200">
         <Button
           type="primary"
