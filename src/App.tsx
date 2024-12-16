@@ -8,10 +8,13 @@ import { useState } from "react";
 import CNNForm from "./components/CNNForm";
 import CodeEditor from "./components/CodeEditor";
 import FCNForm from "./components/FCNForm";
-import { cnnEmptyLayers, CNNLayer } from "./types/CNNTypes";
-import { DenseLayer, FCNLayer, InputLayer } from "./types/FCNTypes";
+import { cnnEmptyLayers, CNNLayer, CNNConfig } from "./types/CNNTypes";
+import { DenseLayer, FCNLayer, InputLayer, FCNConfig } from "./types/FCNTypes";
 import CNNVisual from "./visuals/CNNVisual";
 import FCNVisual from "./visuals/FCNVisual";
+import { FCNGenerator } from "./neural-networks/fcn/fcn-generator";
+import { CNNGenerator } from "./neural-networks/cnn/cnn-generator";
+import { message } from "antd";
 
 const fontFace = new FontFace(
   "JetBrainsMono",
@@ -55,6 +58,12 @@ function App() {
     { type: "Dense", size: 8, activation: "ReLU" } as DenseLayer,
   ]);
   const [fcnLayers, setFcnLayers] = useState<FCNLayer[]>([]);
+  const [generatedFCNCode, setGeneratedFCNCode] = useState<string>(
+    "# Your Python code here"
+  );
+  const [generatedCNNCode, setGeneratedCNNCode] = useState<string>(
+    "# Your Python code here"
+  );
 
   const renderForm = () => {
     return (
@@ -155,7 +164,55 @@ function App() {
     }
   };
 
+  const copyToClipboard = () => {
+    try {
+      switch (activeTab) {
+        case "FCN":
+          navigator.clipboard.writeText(generatedFCNCode);
+          break;
+        case "CNN":
+          navigator.clipboard.writeText(generatedCNNCode);
+          break;
+      }
+      message.success("Code copied to clipboard!");
+    } catch (error) {
+      message.error("Failed to copy code to clipboard!");
+      console.error(error);
+    }
+  };
+
+  const downloadCode = () => {
+    try {
+      let blob = null;
+      switch (activeTab) {
+        case "FCN":
+          blob = new Blob([generatedFCNCode], { type: "text/plain" });
+          break;
+        case "CNN":
+          blob = new Blob([generatedCNNCode], { type: "text/plain" });
+          break;
+        default:
+          break;
+      }
+
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${activeTab}.py`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+      message.success("Code downloaded successfully!");
+    } catch (error) {
+      message.error("Failed to download code!");
+      console.error(error);
+    }
+  };
+
   const renderCode = () => {
+    const generatedCode =
+      activeTab === "FCN" ? generatedFCNCode : generatedCNNCode;
     return (
       <div className="h-full">
         <div className="code-header flex flex-row m-2 items-start">
@@ -187,27 +244,54 @@ function App() {
           </div>
           <div className="ml-auto flex flex-row items-center">
             <Tooltip title="Copy" className="mr-1">
-              <Button icon={<CopyOutlined />} />
+              <Button icon={<CopyOutlined />} onClick={copyToClipboard} />
             </Tooltip>
             <Tooltip title="Download" className="ml-1">
-              <Button icon={<DownloadOutlined />} />
+              <Button icon={<DownloadOutlined />} onClick={downloadCode} />
             </Tooltip>
           </div>
         </div>
-        <CodeEditor />
+        <CodeEditor code={generatedCode} />
       </div>
     );
+  };
+
+  const generateFCNCode = () => {
+    const fcnGenerator = new FCNGenerator();
+    const fcnConfig: FCNConfig = {
+      layers: fcnLayersForm,
+      kerasType: kerasType
+    }
+    setGeneratedFCNCode(fcnGenerator.generateCode(framework, fcnConfig));
+  };
+
+  const generateCNNCode = () => {
+    const cnnGenerator = new CNNGenerator();
+    const cnnConfig: CNNConfig = {
+      layers: cnnLayersForm,
+      kerasType: kerasType
+    }
+    setGeneratedCNNCode(cnnGenerator.generateCode(framework, cnnConfig));
   };
 
   const generate = () => {
     if (activeTab === MODEL_TYPE.CNN) {
       setCnnLayers(structuredClone(cnnLayersForm));
+      generateCNNCode();
     } else if (activeTab === MODEL_TYPE.FCN) {
       setFcnLayers(structuredClone(fcnLayersForm));
+      generateFCNCode();
     } else {
       console.log("Coming Soon");
     }
   };
+
+  // useEffect(() => {
+  //   generateFCNCode();
+  //   generateCNNCode();
+  // }, [kerasType]);
+
+
   return (
     <div className="app-container min-h-screen bg-slate-50">
       <div className="header flex items-center justify-between p-4 bg-white border-b border-slate-200">

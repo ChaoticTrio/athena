@@ -53,3 +53,15 @@ const fcnEmptyLayers: Record<FCNLayerTypes, () => FCNLayer> = {
 export { FCNLayerTypes, fcnEmptyLayers };
 export type { DenseLayer, DropoutLayer, FCNLayer, InputLayer, OutputLayer };
 export { FCNActivationFunctions };
+
+
+export interface FCNConfig {
+  layers: FCNLayer[];
+  kerasType: string;
+}
+
+export interface CodeGenerator {
+  generateModel(config: FCNConfig): string;
+  generateImports(): string;
+  generateTrainingCode(config: FCNConfig): string;
+} 
