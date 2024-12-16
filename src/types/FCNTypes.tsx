@@ -13,7 +13,7 @@ type InputLayer = {
 type DenseLayer = {
   type: FCNLayerTypes.Dense;
   size: number;
-  activation: FCNActivationFunctions;
+  activation: ActivationFunctions;
 };
 
 type DropoutLayer = {
@@ -24,11 +24,11 @@ type DropoutLayer = {
 type OutputLayer = {
   type: FCNLayerTypes.Output;
   size: number;
-  activation: FCNActivationFunctions;
+  activation: ActivationFunctions;
 };
 
 type FCNLayer = InputLayer | DenseLayer | DropoutLayer | OutputLayer;
-enum FCNActivationFunctions {
+enum ActivationFunctions {
   ReLU = "ReLU",
   Sigmoid = "Sigmoid",
   Tanh = "Tanh",
@@ -36,20 +36,34 @@ enum FCNActivationFunctions {
 }
 
 const fcnEmptyLayers: Record<FCNLayerTypes, () => FCNLayer> = {
-  [FCNLayerTypes.Input]: () => ({ type: FCNLayerTypes.Input, size: 0 }),
+  [FCNLayerTypes.Input]: () => ({ type: FCNLayerTypes.Input, size: 1 }),
   [FCNLayerTypes.Dense]: () => ({
     type: FCNLayerTypes.Dense,
-    size: 0,
-    activation: FCNActivationFunctions.ReLU,
+    size: 1,
+    activation: ActivationFunctions.ReLU,
   }),
-  [FCNLayerTypes.Dropout]: () => ({ type: FCNLayerTypes.Dropout, rate: 0 }),
+  [FCNLayerTypes.Dropout]: () => ({ type: FCNLayerTypes.Dropout, rate: 0.01 }),
   [FCNLayerTypes.Output]: () => ({
     type: FCNLayerTypes.Output,
-    size: 0,
-    activation: FCNActivationFunctions.ReLU,
+    size: 1,
+    activation: ActivationFunctions.ReLU,
   }),
 };
 
-export { FCNLayerTypes, fcnEmptyLayers };
+const FCN_LIMITS = {
+  INPUT: {
+    SIZE: { MIN: 1, MAX: 100000 },
+  },
+  DENSE: {
+    SIZE: { MIN: 1, MAX: 50000 },
+  },
+  OUTPUT: {
+    SIZE: { MIN: 1, MAX: 10000 },
+  },
+  DROPOUT: {
+    RATE: { MIN: 0.01, MAX: 1 },
+  },
+};
+
+export { ActivationFunctions, FCN_LIMITS, fcnEmptyLayers, FCNLayerTypes };
 export type { DenseLayer, DropoutLayer, FCNLayer, InputLayer, OutputLayer };
-export { FCNActivationFunctions };

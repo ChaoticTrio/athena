@@ -305,7 +305,7 @@ function FCNVisual({
   const wrapperRef = useRef();
   const groupRef = useRef();
   const xViewBox = 300 * fcnLayers.length,
-    yViewBox = 1000;
+    yViewBox = 1200;
   const transitionDuration = 500;
 
   const downloadSceneAsImage = () => {
@@ -350,28 +350,24 @@ function FCNVisual({
 
   useEffect(() => {
     let prevSize = 0;
-    const layers: Layer[] = fcnLayers.map((layer) => {
+    const layers: Layer[] = fcnLayers.flatMap((layer) => {
       switch (layer.type) {
         case FCNLayerTypes.Input:
           prevSize = layer.size;
-          return {
+          return [{
             type: layer.type as string,
             size: layer.size,
             label: "Input",
-          };
+          }];
         case FCNLayerTypes.Dense:
           prevSize = layer.size;
-          return {
+          return [{
             type: layer.type as string,
             size: layer.size,
             label: layer.activation,
-          };
+          }];
         case FCNLayerTypes.Dropout:
-          return {
-            type: layer.type as string,
-            size: prevSize,
-            label: layer.rate.toString(),
-          };
+          return [];
         case FCNLayerTypes.Output:
           return {
             type: layer.type as string,
@@ -379,7 +375,7 @@ function FCNVisual({
             label: "Output",
           };
         default:
-          return { type: "", size: 0 };
+          return [];
       }
     });
     const wrapper = d3.select(wrapperRef.current);
