@@ -39,7 +39,7 @@ from tensorflow.keras import layers`;
   private generateSequentialModel(config: CNNConfig): string {
     let code = "model = keras.Sequential()\n";
 
-    config.layers.forEach((layer, index) => {
+    config.layers.forEach((layer) => {
       switch (layer.type) {
         case CNNLayerTypes.Input:
           code += `model.add(layers.Input(shape=(${layer.size[0]}, ${layer.size[1]}, ${layer.size[2]})))\n`;

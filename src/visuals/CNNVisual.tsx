@@ -201,6 +201,7 @@ const layerFormatters: Record<
   Conv: formatConvLayer,
   Padding: formatPaddingLayer,
   Pool: formatPoolingLayer,
+  // TODO: Add more layer formatters for Flatten, Dense, etc.
 } as const;
 
 function calcChannelWidth(n: number): number {
