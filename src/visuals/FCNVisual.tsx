@@ -1,11 +1,14 @@
 import {
   DownloadOutlined,
+  DownOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
+  StopOutlined,
+  UpOutlined,
 } from "@ant-design/icons";
-import { Button, Tooltip } from "antd";
+import { Button, Segmented, Tooltip } from "antd";
 import * as d3 from "d3";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FCNLayer, FCNLayerTypes } from "../types/FCNTypes";
 
 type Layer = {
@@ -288,6 +291,8 @@ function generateDataset(numOfLayers?: number): Layer[] {
   return res;
 }
 
+type AnnotationAlignment = "none" | "up" | "down";
+
 // Entry point, might need to replace dataset with a prop or return an update function
 function FCNVisual({
   fcnLayers,
@@ -298,6 +303,7 @@ function FCNVisual({
   toggleMaximize: () => void;
   maximizeState: boolean;
 }): JSX.Element {
+  const [showText, setShowText] = useState<AnnotationAlignment>("down");
   const nodeRef = useRef();
   const pathRef = useRef();
   const collapsedRef = useRef();
@@ -354,18 +360,22 @@ function FCNVisual({
       switch (layer.type) {
         case FCNLayerTypes.Input:
           prevSize = layer.size;
-          return [{
-            type: layer.type as string,
-            size: layer.size,
-            label: "Input",
-          }];
+          return [
+            {
+              type: layer.type as string,
+              size: layer.size,
+              label: "Input",
+            },
+          ];
         case FCNLayerTypes.Dense:
           prevSize = layer.size;
-          return [{
-            type: layer.type as string,
-            size: layer.size,
-            label: layer.activation,
-          }];
+          return [
+            {
+              type: layer.type as string,
+              size: layer.size,
+              label: layer.activation,
+            },
+          ];
         case FCNLayerTypes.Dropout:
           return [];
         case FCNLayerTypes.Output:
@@ -436,7 +446,7 @@ function FCNVisual({
           update
             .attr("stroke", "black")
             .attr("stroke-opacity", 1)
-            .attr("stroke-width", (d) => Math.random() * 0.8)
+            // .attr("stroke-width", (d) => Math.random() * 0.8)
             .call((update) =>
               update
                 .transition()
@@ -561,7 +571,7 @@ function FCNVisual({
           enter
             .append("text")
             .attr("x", (d) => d.x)
-            .attr("y", (d) => d.y)
+            .attr("y", (d) => (showText === "down" ? d.y : yViewBox - d.y))
             .attr("fill", "black")
             .attr("opacity", 0)
             .attr("font-size", 30)
@@ -569,7 +579,10 @@ function FCNVisual({
             .attr("text-anchor", "middle")
             .text((d) => d.text)
             .call((enter) =>
-              enter.transition().duration(transitionDuration).attr("opacity", 1)
+              enter
+                .transition()
+                .duration(transitionDuration)
+                .attr("opacity", showText === "none" ? 0 : 1)
             ),
         // Update: Modify existing text elements
         (update) =>
@@ -579,9 +592,9 @@ function FCNVisual({
               update
                 .transition()
                 .duration(transitionDuration)
-                .attr("opacity", 1)
+                .attr("opacity", showText === "none" ? 0 : 1)
                 .attr("x", (d) => d.x)
-                .attr("y", (d) => d.y)
+                .attr("y", (d) => (showText === "down" ? d.y : yViewBox - d.y))
             ),
         // Exit: Remove unused text elements
         (exit) =>
@@ -596,7 +609,7 @@ function FCNVisual({
     return () => {
       wrapper.on(".zoom", null); // Clean up zoom behavior on unmount
     };
-  }, [fcnLayers]);
+  }, [fcnLayers, showText]);
 
   return (
     <div
@@ -604,6 +617,20 @@ function FCNVisual({
       style={{ background: "#f0f0f0" }}
       ref={wrapperRef}
     >
+      <Segmented
+        key={1}
+        className="absolute m-2 z-10 border-slate-500 border-2"
+        vertical
+        options={[
+          { value: "none", icon: <StopOutlined /> },
+          { value: "up", icon: <UpOutlined /> },
+          { value: "down", icon: <DownOutlined /> },
+        ]}
+        value={showText}
+        onChange={(value) => {
+          setShowText(value as AnnotationAlignment);
+        }}
+      />
       <Tooltip key={3} placement="left" title="Download">
         <Button
           className="absolute z-10 right-10 m-2 border-2 border-slate-500 "

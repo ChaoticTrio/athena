@@ -9,7 +9,13 @@ import CNNForm from "./components/CNNForm";
 import CodeEditor from "./components/CodeEditor";
 import FCNForm from "./components/FCNForm";
 import { cnnEmptyLayers, CNNLayer } from "./types/CNNTypes";
-import { fcnEmptyLayers, FCNLayer } from "./types/FCNTypes";
+import {
+  ActivationFunctions,
+  DenseLayer,
+  FCNLayer,
+  InputLayer,
+  OutputLayer,
+} from "./types/FCNTypes";
 import CNNVisual from "./visuals/CNNVisual";
 import FCNVisual from "./visuals/FCNVisual";
 
@@ -24,13 +30,11 @@ fontFace.load().then((font) => {
 enum MODEL_TYPE {
   FCN = "FCN",
   CNN = "CNN",
-  XXX = "XXX",
 }
 
 enum FRAMEWORK {
   PyTorch = "PyTorch",
   Keras = "Keras",
-  XXX = "XXX",
 }
 
 enum KERAS_TYPE {
@@ -109,10 +113,16 @@ function validateCNNLayers(layers: CNNLayer[]) {
           success: false,
           content: "Output layer must be the last layer",
         };
-      // TODO
-      // case "Conv":
-      // case "Pooling":
-      // case "Padding":
+      case "Conv":
+      case "Pool":
+      case "Padding":
+        if (flattenIndex !== -1) {
+          return {
+            success: false,
+            content: `${layers[i].type} layers must come before flatten layer`,
+          };
+        }
+        break;
       default:
         break;
     }
@@ -131,7 +141,28 @@ function App() {
   ]);
   const [cnnLayers, setCnnLayers] = useState<CNNLayer[]>([]);
   const [fcnLayersForm, setFcnLayersForm] = useState<FCNLayer[]>([
-    fcnEmptyLayers.Input(),
+    { type: "Input", size: 8 } as InputLayer,
+    {
+      type: "Dense",
+      size: 16,
+      activation: ActivationFunctions.ReLU,
+    } as DenseLayer,
+    {
+      type: "Dense",
+      size: 16,
+      activation: ActivationFunctions.Sigmoid,
+    } as DenseLayer,
+    {
+      type: "Dense",
+      size: 16,
+      activation: ActivationFunctions.Softmax,
+    } as DenseLayer,
+    {
+      type: "Dense",
+      size: 16,
+      activation: ActivationFunctions.Tanh,
+    } as DenseLayer,
+    { type: "Output", size: 8 } as OutputLayer,
   ]);
   const [fcnLayers, setFcnLayers] = useState<FCNLayer[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
@@ -188,21 +219,6 @@ function App() {
                   setCnnLayers={setCnnLayersForm}
                 />
               ),
-            },
-            {
-              key: MODEL_TYPE.XXX,
-              label: (
-                <span
-                  className={`py-2 px-4 rounded-lg ${
-                    activeTab === MODEL_TYPE.XXX
-                      ? "bg-slate-700 text-white"
-                      : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  {MODEL_TYPE.XXX}
-                </span>
-              ),
-              children: <div>Coming Soon</div>,
             },
           ]}
         />
@@ -307,6 +323,7 @@ function App() {
       console.log("Coming Soon");
     }
   };
+
   return (
     <div className="app-container min-h-screen bg-slate-50">
       {contextHolder}
