@@ -3,19 +3,22 @@ import {
   DownloadOutlined,
   QuestionCircleOutlined,
 } from "@ant-design/icons";
-import { Button, message, Radio, Splitter, Tabs, Tooltip } from "antd";
-import { useState } from "react";
+import {
+  Button,
+  message,
+  Radio,
+  Splitter,
+  Tabs,
+  Tooltip,
+  Tour,
+  TourProps,
+} from "antd";
+import { useRef, useState } from "react";
 import CNNForm from "./components/CNNForm";
 import CodeEditor from "./components/CodeEditor";
 import FCNForm from "./components/FCNForm";
-import { cnnEmptyLayers, CNNLayer } from "./types/CNNTypes";
-import {
-  ActivationFunctions,
-  DenseLayer,
-  FCNLayer,
-  InputLayer,
-  OutputLayer,
-} from "./types/FCNTypes";
+import { CNNLayer, sampleCNN } from "./types/CNNTypes";
+import { FCNLayer, sampleFCN } from "./types/FCNTypes";
 import CNNVisual from "./visuals/CNNVisual";
 import FCNVisual from "./visuals/FCNVisual";
 
@@ -132,40 +135,109 @@ function validateCNNLayers(layers: CNNLayer[]) {
 }
 
 function App() {
+  const [tourOpen, setTourOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MODEL_TYPE>(MODEL_TYPE.FCN);
   const [framework, setFramework] = useState<FRAMEWORK>(FRAMEWORK.PyTorch);
   const [kerasType, setKerasType] = useState<KERAS_TYPE>(KERAS_TYPE.Sequential);
   const [maximizeViz, setMaximizeViz] = useState(false);
-  const [cnnLayersForm, setCnnLayersForm] = useState<CNNLayer[]>([
-    cnnEmptyLayers.Input(),
-  ]);
+  const [cnnLayersForm, setCnnLayersForm] = useState<CNNLayer[]>(sampleCNN());
   const [cnnLayers, setCnnLayers] = useState<CNNLayer[]>([]);
-  const [fcnLayersForm, setFcnLayersForm] = useState<FCNLayer[]>([
-    { type: "Input", size: 8 } as InputLayer,
-    {
-      type: "Dense",
-      size: 16,
-      activation: ActivationFunctions.ReLU,
-    } as DenseLayer,
-    {
-      type: "Dense",
-      size: 16,
-      activation: ActivationFunctions.Sigmoid,
-    } as DenseLayer,
-    {
-      type: "Dense",
-      size: 16,
-      activation: ActivationFunctions.Softmax,
-    } as DenseLayer,
-    {
-      type: "Dense",
-      size: 16,
-      activation: ActivationFunctions.Tanh,
-    } as DenseLayer,
-    { type: "Output", size: 8 } as OutputLayer,
-  ]);
+  const [fcnLayersForm, setFcnLayersForm] = useState<FCNLayer[]>(sampleFCN());
   const [fcnLayers, setFcnLayers] = useState<FCNLayer[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
+  const typeRef = useRef(null),
+    genRef = useRef(null),
+    codeRef = useRef(null);
+  const fcnRefs = {
+    itemRef: useRef(null),
+    configRef: useRef(null),
+    dlRef: useRef(null),
+  };
+  const cnnRefs = {
+    itemRef: useRef(null),
+    configRef: useRef(null),
+    dlRef: useRef(null),
+  };
+
+  const fcnSteps: TourProps["steps"] = [
+    {
+      title: "Model Type",
+      description: "Choose the type of your model",
+      target: () => typeRef.current,
+    },
+    {
+      title: "Layers configuation",
+      description: "Add and config layer type and parameters.",
+      target: () => fcnRefs.itemRef.current,
+    },
+    {
+      title: "Arrange Layers",
+      description: "Move layers to rearrange or delete them.",
+      target: () => fcnRefs.itemRef.current,
+    },
+    {
+      title: "Generate",
+      description: "Generate code and visualization with one click.",
+      target: () => genRef.current,
+    },
+    {
+      title: "Configure annotations",
+      description: "Configure the visualization's annotation settings.",
+      target: () => fcnRefs.configRef.current,
+      placement: "right",
+    },
+    {
+      title: "Download",
+      description: "Download the visualization.",
+      target: () => fcnRefs.dlRef.current,
+    },
+    {
+      title: "Copy code",
+      description: "Copy code or download as .py file.",
+      target: () => codeRef.current,
+      placement: "left",
+    },
+  ];
+
+  const cnnSteps: TourProps["steps"] = [
+    {
+      title: "Model Type",
+      description: "Choose the type of your model",
+      target: () => typeRef.current,
+    },
+    {
+      title: "Layers configuation",
+      description: "Add and config layer type and parameters.",
+      target: () => cnnRefs.itemRef.current,
+    },
+    {
+      title: "Arrange Layers",
+      description: "Move layers to rearrange or delete them.",
+      target: () => cnnRefs.itemRef.current,
+    },
+    {
+      title: "Generate",
+      description: "Generate code and visualization with one click.",
+      target: () => genRef.current,
+    },
+    {
+      title: "Configure annotations",
+      description: "Configure the visualization's annotation settings.",
+      target: () => cnnRefs.configRef.current,
+      placement: "right",
+    },
+    {
+      title: "Download",
+      description: "Download the visualization.",
+      target: () => cnnRefs.dlRef.current,
+    },
+    {
+      title: "Copy code",
+      description: "Copy code or download as .py file.",
+      target: () => codeRef.current,
+      placement: "left",
+    },
+  ];
 
   const renderForm = () => {
     console.log("rendering form");
@@ -184,6 +256,7 @@ function App() {
               key: MODEL_TYPE.FCN,
               label: (
                 <span
+                  ref={typeRef}
                   className={`py-2 px-4 rounded-lg ${
                     activeTab === MODEL_TYPE.FCN
                       ? "bg-slate-700 text-white"
@@ -195,6 +268,7 @@ function App() {
               ),
               children: (
                 <FCNForm
+                  itemRef={fcnRefs.itemRef}
                   fcnLayers={fcnLayersForm}
                   setFcnLayers={setFcnLayersForm}
                 />
@@ -215,6 +289,7 @@ function App() {
               ),
               children: (
                 <CNNForm
+                  itemRef={cnnRefs.itemRef}
                   cnnLayers={cnnLayersForm}
                   setCnnLayers={setCnnLayersForm}
                 />
@@ -232,6 +307,8 @@ function App() {
       case "FCN":
         return (
           <FCNVisual
+            configRef={fcnRefs.configRef}
+            dlRef={fcnRefs.dlRef}
             fcnLayers={fcnLayers}
             toggleMaximize={() => setMaximizeViz(!maximizeViz)}
             maximizeState={maximizeViz}
@@ -240,6 +317,8 @@ function App() {
       case "CNN":
         return (
           <CNNVisual
+            configRef={cnnRefs.configRef}
+            dlRef={cnnRefs.dlRef}
             layers={cnnLayers}
             toggleMaximize={() => setMaximizeViz(!maximizeViz)}
             maximizeState={maximizeViz}
@@ -282,7 +361,7 @@ function App() {
               />
             )}
           </div>
-          <div className="ml-auto flex flex-row items-center">
+          <div className="ml-auto flex flex-row items-center" ref={codeRef}>
             <Tooltip title="Copy" className="mr-1">
               <Button icon={<CopyOutlined />} />
             </Tooltip>
@@ -327,8 +406,26 @@ function App() {
   return (
     <div className="app-container min-h-screen bg-slate-50">
       {contextHolder}
+      <Tour
+        open={tourOpen}
+        onClose={() => setTourOpen(false)}
+        steps={
+          activeTab === MODEL_TYPE.CNN
+            ? cnnSteps
+            : activeTab === MODEL_TYPE.FCN
+            ? fcnSteps
+            : []
+        }
+        indicatorsRender={(current, total) => (
+          <span>
+            {current + 1} / {total}
+          </span>
+        )}
+        type="primary"
+      />
       <div className="header flex items-center justify-between p-4 bg-white border-b border-slate-200">
         <Button
+          ref={genRef}
           type="primary"
           className="bg-slate-700 hover:bg-slate-800 border-none generate-button"
           onClick={generate}
@@ -341,6 +438,7 @@ function App() {
             <Button
               icon={<QuestionCircleOutlined />}
               className="text-slate-600 hover:text-slate-800 hover:bg-slate-50"
+              onClick={() => setTourOpen(true)}
             />
           </Tooltip>
         </div>

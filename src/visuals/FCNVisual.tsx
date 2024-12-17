@@ -295,10 +295,14 @@ type AnnotationAlignment = "none" | "up" | "down";
 
 // Entry point, might need to replace dataset with a prop or return an update function
 function FCNVisual({
+  configRef,
+  dlRef,
   fcnLayers,
   toggleMaximize,
   maximizeState,
 }: {
+  configRef: React.MutableRefObject<null>;
+  dlRef: React.MutableRefObject<null>;
   fcnLayers: FCNLayer[];
   toggleMaximize: () => void;
   maximizeState: boolean;
@@ -618,6 +622,7 @@ function FCNVisual({
       ref={wrapperRef}
     >
       <Segmented
+        ref={configRef}
         key={1}
         className="absolute m-2 z-10 border-slate-500 border-2"
         vertical
@@ -633,6 +638,7 @@ function FCNVisual({
       />
       <Tooltip key={3} placement="left" title="Download">
         <Button
+          ref={dlRef}
           className="absolute z-10 right-10 m-2 border-2 border-slate-500 "
           icon={<DownloadOutlined />}
           size="middle"

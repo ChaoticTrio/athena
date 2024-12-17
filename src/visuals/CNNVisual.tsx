@@ -899,12 +899,16 @@ type AnnotationAlignment = "none" | "alt" | "slant" | "slantDown";
 
 // Entry point for CNN visual, takes in width and height of the canvas, needs to be replaced with a prop or return a update function
 function CNNVisual({
+  configRef,
+  dlRef,
   layers,
   toggleMaximize,
   maximizeState,
   width,
   height,
 }: {
+  configRef: React.MutableRefObject<null>;
+  dlRef: React.MutableRefObject<null>;
   layers: CNNLayer[];
   toggleMaximize: () => void;
   maximizeState: boolean;
@@ -963,6 +967,7 @@ function CNNVisual({
       }}
     >
       <Segmented
+        ref={configRef}
         key={1}
         className="absolute m-2 z-10 border-slate-500 border-2"
         vertical
@@ -995,6 +1000,7 @@ function CNNVisual({
 
       <Tooltip key={3} placement="left" title="Download">
         <Button
+          ref={dlRef}
           className="absolute z-10 right-10 m-2 border-2 border-slate-500 "
           icon={<DownloadOutlined />}
           size="middle"

@@ -146,7 +146,33 @@ const CNN_LIMITS = {
   },
 };
 
-export { CNN_LIMITS, cnnEmptyLayers, CNNLayerTypes };
+const sampleCNN: () => CNNLayer[] = () => [
+  { type: CNNLayerTypes.Input, size: [3, 256, 256] } as InputLayer,
+  { type: CNNLayerTypes.Conv, size: 16, kernel: [3, 3] } as ConvLayer,
+  { type: CNNLayerTypes.Pool, stride: [2, 2], kernel: [2, 2] } as PoolLayer,
+  { type: CNNLayerTypes.Conv, size: 32, kernel: [3, 3] } as ConvLayer,
+  { type: CNNLayerTypes.Pool, stride: [2, 2], kernel: [2, 2] } as PoolLayer,
+  { type: CNNLayerTypes.Flatten } as FlattenLayer,
+  {
+    type: CNNLayerTypes.Dense,
+    size: 64,
+    activation: ActivationFunctions.ReLU,
+  } as CNNDenseLayer,
+  { type: CNNLayerTypes.Dropout, rate: 0.5 } as CNNDropoutLayer,
+  {
+    type: CNNLayerTypes.Dense,
+    size: 64,
+    activation: ActivationFunctions.ReLU,
+  } as CNNDenseLayer,
+  { type: CNNLayerTypes.Dropout, rate: 0.5 } as CNNDropoutLayer,
+  {
+    type: CNNLayerTypes.Output,
+    size: 10,
+    activation: ActivationFunctions.Softmax,
+  } as CNNOutputLayer,
+];
+
+export { CNN_LIMITS, cnnEmptyLayers, CNNLayerTypes, sampleCNN };
 export type {
   CNNDenseLayer,
   CNNDropoutLayer,
