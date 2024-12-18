@@ -167,7 +167,7 @@ from tensorflow.keras import layers`;
    * @param config The CNN configuration
    * @returns The generated code as a string
   */
-  generateTrainingCode(config: CNNConfig): string {
+  generateTrainingCode(): string {
     return `
 def train_model(model, x_train, y_train, epochs=10, batch_size=32):
     model.compile(

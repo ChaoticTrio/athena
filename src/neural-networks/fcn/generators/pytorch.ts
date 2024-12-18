@@ -100,7 +100,7 @@ class FCN(nn.Module):
    * @param {FCNConfig} config The configuration of the model.
    * @returns {string} The generated code as a string.
    */
-  generateTrainingCode(config: FCNConfig): string {
+  generateTrainingCode(): string {
     return `
 def train_model(model, train_loader, num_epochs=10):
     criterion = nn.MSELoss()

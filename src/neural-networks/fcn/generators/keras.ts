@@ -1,4 +1,4 @@
-import { CodeGenerator, FCNConfig, FCNLayer, InputLayer, DenseLayer } from '../../../types/FCNTypes';
+import { CodeGenerator, FCNConfig} from '../../../types/FCNTypes';
 
 export class KerasGenerator implements CodeGenerator {
   /**
@@ -151,7 +151,7 @@ from tensorflow.keras.optimizers import Adam`;
    * @param config The FCN configuration
    * @returns The generated code as a string
    */
-  generateTrainingCode(config: FCNConfig): string {
+  generateTrainingCode(): string {
     return `
 def train_model(model, x_train, y_train, epochs=10, batch_size=32):
     history = model.fit(

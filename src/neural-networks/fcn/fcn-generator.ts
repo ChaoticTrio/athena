@@ -33,6 +33,6 @@ export class FCNGenerator {
 
 ${generator.generateModel(config)}
 
-${generator.generateTrainingCode(config)}`;
+${generator.generateTrainingCode()}`;
   }
 } 
