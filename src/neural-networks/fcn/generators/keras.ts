@@ -36,19 +36,26 @@ from tensorflow.keras.optimizers import Adam`;
    * @returns The generated code as a string
    */
   private generateSequentialModel(config: FCNConfig): string {
-    return `
-def create_model():
-    model = Sequential([
-        ${this.generateLayers(config.layers)}
-    ])
-    
-    model.compile(
-        optimizer=Adam(learning_rate=0.001),
-        loss='mse',
-        metrics=['accuracy']
-    )
-    
-    return model`;
+    let code = "model = keras.Sequential()\n";
+
+    config.layers.forEach((layer) => {
+      switch (layer.type) {
+        case 'Input':
+          code += `model.add(layers.Input(shape=(${layer?.size},)))\n`;
+          break;
+        case 'Dense':
+          code += `model.add(layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}'))\n`;
+          break;
+        case 'Dropout':
+          code += `model.add(layers.Dropout(${layer.rate}))\n`;
+          break;
+        case 'Output':
+          code += `model.add(layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}'))\n`;
+          break;
+      }
+    });
+
+    return code;
   }
 
 
@@ -58,20 +65,31 @@ def create_model():
    * @returns The generated code as a string
    */
   private generateFunctionalModel(config: FCNConfig): string {
-    const inputShape = config.layers[0].type === 'Input' ? config.layers[0].size : undefined;
-    return `
-def create_model():
-    inputs = Input(shape=${JSON.stringify(inputShape)})
-    x = ${this.generateLayers(config.layers, true)}
-    model = Model(inputs=inputs, outputs=x)
+    let code = "";
+    let prevLayer = "inputs";
     
-    model.compile(
-        optimizer=Adam(learning_rate=0.001),
-        loss='mse',
-        metrics=['accuracy']
-    )
-    
-    return model`;
+    config.layers.forEach((layer, index) => {
+      switch (layer.type) {
+        case 'Input':
+          code += `inputs = layers.Input(shape=(${layer?.size},))\n`;
+          break;
+        case 'Dense':
+          code += `x${index} = layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}')(${prevLayer})\n`;
+          prevLayer = `x${index}`;
+          break;
+        case 'Dropout':
+          code += `x${index} = layers.Dropout(${layer.rate})(${prevLayer})\n`;
+          prevLayer = `x${index}`;
+          break;
+        case 'Output':
+          code += `x${index} = layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}')(${prevLayer})\n`;
+          prevLayer = `x${index}`;
+          break;
+      }
+    });
+
+    code += `\nmodel = keras.Model(inputs=inputs, outputs=${prevLayer})\n`;
+    return code;
   }
 
   /**
@@ -80,62 +98,36 @@ def create_model():
    * @returns The generated code as a string
    */
   private generateSubclassingModel(config: FCNConfig): string {
-    return `
-class CustomModel(tf.keras.Model):
-    def __init__(self):
-        super(CustomModel, self).__init__()
-        self.layers = [
-            ${this.generateLayers(config.layers)}
-        ]
+    let code = "class FCNModel(keras.Model):\n";
+    code += "    def __init__(self):\n";
+    code += "        super(FCNModel, self).__init__()\n";
 
-    def call(self, inputs):
-        x = inputs
-        for layer in self.layers:
-            x = layer(x)
-        return x
-
-def create_model():
-    model = CustomModel()
-    model.compile(
-        optimizer=Adam(learning_rate=0.001),
-        loss='mse',
-        metrics=['accuracy']
-    )
-    
-    return model`;
-  }
-
-  /**
-   * Generates the Keras layers for the given FCN configuration.
-   * @param layers The FCN layers
-   * @param isFunctional Whether to generate the layers for a functional model or not
-   * @returns The generated code as a string
-   */
-  private generateLayers(layers: FCNLayer[], isFunctional: boolean = false): string {
-    return layers.map((layer, index) => {
+    config.layers.forEach((layer, index) => {
       switch (layer.type) {
-        case 'Input':
-            return isFunctional 
-                ? `Input(shape=(${layer.size},)),` 
-                : `Dense(${(layers[index + 1] as DenseLayer).size}, input_dim=${layer.size}, activation='${this.getActivation((layers[index + 1] as DenseLayer).activation || 'ReLU')}'),`;
-        
         case 'Dense':
-            if (index === 0) {
-                return isFunctional 
-                    ? `Dense(${layer.size}, activation='${this.getActivation(layer.activation)}')(inputs),` 
-                    : `Dense(${layer.size}, input_dim=${(layers[0] as InputLayer).size}, activation='${this.getActivation(layer.activation)}'),`;
-            }
-            return isFunctional 
-                ? `Dense(${layer.size}, activation='${this.getActivation(layer.activation)}')(x),` 
-                : `Dense(${layer.size}, activation='${this.getActivation(layer.activation)}'),`;
-        
+          code += `        self.dense${index} = layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}')\n`;
+          break;
         case 'Dropout':
-            return `Dropout(${layer.rate}),`;
-        
-        default:
-            return '';
+          code += `        self.dropout${index} = layers.Dropout(${layer.rate})\n`;
+          break;
       }
-    }).filter(Boolean).join('\n        ');
+    });
+
+    code += "\n    def call(self, inputs):\n";
+    code += "        x = inputs\n";
+    config.layers.forEach((layer, index) => {
+      switch (layer.type) {
+        case 'Dense':
+          code += `        x = self.dense${index}(x)\n`;
+          break;
+        case 'Dropout':
+          code += `        x = self.dropout${index}(x)\n`;
+          break;
+      }
+    });
+    code += "        return x\n";
+
+    return code;
   }
 
   /**

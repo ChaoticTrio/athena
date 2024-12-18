@@ -1,19 +1,13 @@
-import {
-  CopyOutlined,
-  DownloadOutlined,
-  QuestionCircleOutlined,
-} from "@ant-design/icons";
-import { Button, message, Radio, Splitter, Tabs, Tooltip } from "antd";
+import { QuestionCircleOutlined } from "@ant-design/icons";
+import { Button, message, Splitter, Tabs, Tooltip } from "antd";
 import { useState } from "react";
 import CNNForm from "./components/CNNForm";
 import CodeEditor from "./components/CodeEditor";
 import FCNForm from "./components/FCNForm";
-import { cnnEmptyLayers, CNNLayer, CNNConfig } from "./types/CNNTypes";
-import { fcnEmptyLayers, FCNLayer, FCNConfig } from "./types/FCNTypes";
+import { cnnEmptyLayers, CNNLayer } from "./types/CNNTypes";
+import { fcnEmptyLayers, FCNLayer } from "./types/FCNTypes";
 import CNNVisual from "./visuals/CNNVisual";
 import FCNVisual from "./visuals/FCNVisual";
-import { FCNGenerator } from "./neural-networks/fcn/fcn-generator";
-import { CNNGenerator } from "./neural-networks/cnn/cnn-generator";
 
 const fontFace = new FontFace(
   "JetBrainsMono",
@@ -27,18 +21,6 @@ enum MODEL_TYPE {
   FCN = "FCN",
   CNN = "CNN",
   XXX = "XXX",
-}
-
-enum FRAMEWORK {
-  PyTorch = "PyTorch",
-  Keras = "Keras",
-  XXX = "XXX",
-}
-
-enum KERAS_TYPE {
-  Sequential = "Sequential",
-  Functional = "Functional",
-  Subclassing = "Subclassing",
 }
 
 function validateFCNLayers(layers: FCNLayer[]) {
@@ -125,8 +107,6 @@ function validateCNNLayers(layers: CNNLayer[]) {
 
 function App() {
   const [activeTab, setActiveTab] = useState<MODEL_TYPE>(MODEL_TYPE.FCN);
-  const [framework, setFramework] = useState<FRAMEWORK>(FRAMEWORK.PyTorch);
-  const [kerasType, setKerasType] = useState<KERAS_TYPE>(KERAS_TYPE.Sequential);
   const [maximizeViz, setMaximizeViz] = useState(false);
   const [cnnLayersForm, setCnnLayersForm] = useState<CNNLayer[]>([
     cnnEmptyLayers.Input(),
@@ -136,12 +116,6 @@ function App() {
     fcnEmptyLayers.Input(),
   ]);
   const [fcnLayers, setFcnLayers] = useState<FCNLayer[]>([]);
-  const [generatedFCNCode, setGeneratedFCNCode] = useState<string>(
-    "# Your Python code here"
-  );
-  const [generatedCNNCode, setGeneratedCNNCode] = useState<string>(
-    "# Your Python code here"
-  );
   const [messageApi, contextHolder] = message.useMessage();
 
   const renderForm = () => {
@@ -244,114 +218,14 @@ function App() {
     }
   };
 
-  const copyToClipboard = () => {
-    try {
-      switch (activeTab) {
-        case "FCN":
-          navigator.clipboard.writeText(generatedFCNCode);
-          break;
-        case "CNN":
-          navigator.clipboard.writeText(generatedCNNCode);
-          break;
-      }
-      message.success("Code copied to clipboard!");
-    } catch (error) {
-      message.error("Failed to copy code to clipboard!");
-      console.error(error);
-    }
-  };
-
-  const downloadCode = () => {
-    try {
-      let blob = null;
-      switch (activeTab) {
-        case "FCN":
-          blob = new Blob([generatedFCNCode], { type: "text/plain" });
-          break;
-        case "CNN":
-          blob = new Blob([generatedCNNCode], { type: "text/plain" });
-          break;
-        default:
-          break;
-      }
-
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${activeTab}.py`;
-        link.click();
-        URL.revokeObjectURL(url);
-      }
-      message.success("Code downloaded successfully!");
-    } catch (error) {
-      message.error("Failed to download code!");
-      console.error(error);
-    }
-  };
-
   const renderCode = () => {
-    const generatedCode =
-      activeTab === "FCN" ? generatedFCNCode : generatedCNNCode;
     return (
-      <div className="h-full">
-        <div className="code-header flex flex-row m-2 items-start">
-          <div className="framework-tabs flex flex-col">
-            <Radio.Group
-              options={Object.values(FRAMEWORK).map((f) => ({
-                label: f,
-                value: f,
-              }))}
-              value={framework}
-              onChange={(e) => setFramework(e.target.value as FRAMEWORK)}
-              optionType="button"
-              buttonStyle="solid"
-              className="mb-1 custom-radio-group"
-            />
-            {framework === FRAMEWORK.Keras && (
-              <Radio.Group
-                options={Object.values(KERAS_TYPE).map((f) => ({
-                  label: f,
-                  value: f,
-                }))}
-                value={kerasType}
-                onChange={(e) => setKerasType(e.target.value as KERAS_TYPE)}
-                optionType="button"
-                buttonStyle="solid"
-                className="mt-1 custom-radio-group"
-              />
-            )}
-          </div>
-          <div className="ml-auto flex flex-row items-center">
-            <Tooltip title="Copy" className="mr-1">
-              <Button icon={<CopyOutlined />} onClick={copyToClipboard} />
-            </Tooltip>
-            <Tooltip title="Download" className="ml-1">
-              <Button icon={<DownloadOutlined />} onClick={downloadCode} />
-            </Tooltip>
-          </div>
-        </div>
-        <CodeEditor code={generatedCode} />
-      </div>
+      <CodeEditor
+        activeTab={activeTab}
+        fcnLayers={fcnLayersForm}
+        cnnLayers={cnnLayersForm}
+      />
     );
-  };
-
-  const generateFCNCode = () => {
-    const fcnGenerator = new FCNGenerator();
-    const fcnConfig: FCNConfig = {
-      layers: fcnLayersForm,
-      kerasType: kerasType
-    }
-    setGeneratedFCNCode(fcnGenerator.generateCode(framework, fcnConfig));
-  };
-
-  const generateCNNCode = () => {
-    const cnnGenerator = new CNNGenerator();
-    const cnnConfig: CNNConfig = {
-      layers: cnnLayersForm,
-      kerasType: kerasType
-    }
-    setGeneratedCNNCode(cnnGenerator.generateCode(framework, cnnConfig));
   };
 
   const generate = () => {
@@ -366,7 +240,6 @@ function App() {
           duration: 2,
         });
       }
-      generateCNNCode();
     } else if (activeTab === MODEL_TYPE.FCN) {
       const { success, content } = validateFCNLayers(fcnLayersForm);
       if (success) {
@@ -378,7 +251,6 @@ function App() {
           duration: 2,
         });
       }
-      generateFCNCode();
     } else {
       console.log("Coming Soon");
     }
@@ -388,7 +260,6 @@ function App() {
   //   generateFCNCode();
   //   generateCNNCode();
   // }, [kerasType]);
-
 
   return (
     <div className="app-container min-h-screen bg-slate-50">

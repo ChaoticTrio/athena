@@ -67,6 +67,9 @@ class FCN(nn.Module):
           case "Dropout":
             return `nn.Dropout(p=${layer.rate}),`;
 
+          case "Output":
+            return `nn.Linear(${layer.size}, ${layer.size}),`;
+
           default:
             return "";
         }

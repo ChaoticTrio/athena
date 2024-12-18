@@ -42,17 +42,28 @@ from tensorflow.keras import layers`;
     config.layers.forEach((layer) => {
       switch (layer.type) {
         case CNNLayerTypes.Input:
-          code += `model.add(layers.Input(shape=(${layer.size[0]}, ${layer.size[1]}, ${layer.size[2]})))\n`;
+          code += `model.add(layers.Input(shape=(${layer?.size[0]}, ${layer?.size[1]}, ${layer?.size[2]})))\n`;
           break;
         case CNNLayerTypes.Conv:
-          code += `model.add(layers.Conv2D(${layer.size}, (${layer.kernel[0]}, ${layer.kernel[1]})))\n`;
+          code += `model.add(layers.Conv2D(${layer?.size}, (${layer?.kernel[0]}, ${layer?.kernel[1]})))\n`;
           break;
         case CNNLayerTypes.Pool:
-          code += `model.add(layers.MaxPooling2D(pool_size=(${layer.kernel[0]}, ${layer.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]})))\n`;
+          code += `model.add(layers.MaxPooling2D(pool_size=(${layer?.kernel[0]}, ${layer?.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]})))\n`;
           break;
         case CNNLayerTypes.Padding:
-          code += `model.add(layers.ZeroPadding2D(padding=(${layer.padding[0]}, ${layer.padding[1]})))\n`;
+          code += `model.add(layers.ZeroPadding2D(padding=(${layer?.padding[0]}, ${layer?.padding[1]})))\n`;
           break;
+        case CNNLayerTypes.Flatten:
+          code += `model.add(layers.Flatten())\n`;
+          break;
+        case CNNLayerTypes.Dense:
+          code += `model.add(layers.Dense(${layer?.size}, activation='${layer.activation}'))\n`;
+          break;
+        case CNNLayerTypes.Dropout:
+          code += `model.add(layers.Dropout(${layer.rate}))\n`;
+          break;
+        case CNNLayerTypes.Output:
+          code += `model.add(layers.Dense(${layer?.size}, activation='${layer.activation}'))\n`;
       }
     });
 
@@ -71,20 +82,35 @@ from tensorflow.keras import layers`;
     config.layers.forEach((layer, index) => {
       switch (layer.type) {
         case CNNLayerTypes.Input:
-          code += `inputs = layers.Input(shape=(${layer.size[0]}, ${layer.size[1]}, ${layer.size[2]}))\n`;
+          code += `inputs = layers.Input(shape=(${layer?.size[0]}, ${layer?.size[1]}, ${layer?.size[2]}))\n`;
           break;
         case CNNLayerTypes.Conv:
-          code += `x${index} = layers.Conv2D(${layer.size}, (${layer.kernel[0]}, ${layer.kernel[1]})))(${prevLayer})\n`;
+          code += `x${index} = layers.Conv2D(${layer?.size}, (${layer?.kernel[0]}, ${layer?.kernel[1]})))(${prevLayer})\n`;
           prevLayer = `x${index}`;
           break;
         case CNNLayerTypes.Pool:
-          code += `x${index} = layers.MaxPooling2D(pool_size=(${layer.kernel[0]}, ${layer.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]}))(${prevLayer})\n`;
+          code += `x${index} = layers.MaxPooling2D(pool_size=(${layer?.kernel[0]}, ${layer?.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]}))(${prevLayer})\n`;
           prevLayer = `x${index}`;
           break;
         case CNNLayerTypes.Padding:
-          code += `x${index} = layers.ZeroPadding2D(padding=(${layer.padding[0]}, ${layer.padding[1]}))(${prevLayer})\n`;
+          code += `x${index} = layers.ZeroPadding2D(padding=(${layer?.padding[0]}, ${layer?.padding[1]}))(${prevLayer})\n`;
           prevLayer = `x${index}`;
           break;
+        case CNNLayerTypes.Flatten:
+          code += `x${index} = layers.Flatten()(${prevLayer})\n`;
+          prevLayer = `x${index}`;
+          break;
+        case CNNLayerTypes.Dense:
+          code += `x${index} = layers.Dense(${layer?.size}, activation='${layer.activation}')(${prevLayer})\n`;
+          prevLayer = `x${index}`;
+          break;
+        case CNNLayerTypes.Dropout:
+          code += `x${index} = layers.Dropout(${layer.rate})(${prevLayer})\n`;
+          prevLayer = `x${index}`;
+          break;
+        case CNNLayerTypes.Output:
+          code += `x${index} = layers.Dense(${layer?.size}, activation='${layer.activation}')(${prevLayer})\n`;
+          prevLayer = `x${index}`;
       }
     });
 
@@ -105,13 +131,13 @@ from tensorflow.keras import layers`;
     config.layers.forEach((layer, index) => {
       switch (layer.type) {
         case CNNLayerTypes.Conv:
-          code += `        self.conv${index} = layers.Conv2D(${layer.size}, (${layer.kernel[0]}, ${layer.kernel[1]}))\n`;
+          code += `        self.conv${index} = layers.Conv2D(${layer?.size}, (${layer?.kernel[0]}, ${layer?.kernel[1]}))\n`;
           break;
         case CNNLayerTypes.Pool:
-          code += `        self.pool${index} = layers.MaxPooling2D(pool_size=(${layer.kernel[0]}, ${layer.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]}))\n`;
+          code += `        self.pool${index} = layers.MaxPooling2D(pool_size=(${layer?.kernel[0]}, ${layer?.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]}))\n`;
           break;
         case CNNLayerTypes.Padding:
-          code += `        self.pad${index} = layers.ZeroPadding2D(padding=(${layer.padding[0]}, ${layer.padding[1]}))\n`;
+          code += `        self.pad${index} = layers.ZeroPadding2D(padding=(${layer?.padding[0]}, ${layer?.padding[1]}))\n`;
           break;
       }
     });

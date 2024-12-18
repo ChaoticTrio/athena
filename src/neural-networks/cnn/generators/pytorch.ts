@@ -40,6 +40,19 @@ import torch.optim as optim`;
         case CNNLayerTypes.Padding:
           code += `        self.pad${index} = nn.ZeroPad2d((${layer.padding[1]}, ${layer.padding[1]}, ${layer.padding[0]}, ${layer.padding[0]}))\n`;
           break;
+        case CNNLayerTypes.Flatten:
+          code += `        self.flatten = nn.Flatten()\n`;
+          break;
+        case CNNLayerTypes.Dense:
+          code += `        self.fc${index} = nn.Linear(${prevChannels}, ${layer.size})\n`;
+          prevChannels = layer.size;
+          break;
+        case CNNLayerTypes.Dropout:
+          code += `        self.dropout${index} = nn.Dropout(p=${layer.rate})\n`;
+          break;
+        case CNNLayerTypes.Output:
+          code += `        self.output = nn.Linear(${prevChannels}, ${layer.size})\n`;
+          break;
       }
     });
 
@@ -55,6 +68,18 @@ import torch.optim as optim`;
           break;
         case CNNLayerTypes.Padding:
           code += `        x = self.pad${index}(x)\n`;
+          break;
+        case CNNLayerTypes.Flatten:
+          code += `        x = self.flatten(x)\n`;
+          break;
+        case CNNLayerTypes.Dense:
+          code += `        x = self.fc${index}(x)\n`;
+          break;
+        case CNNLayerTypes.Dropout:
+          code += `        x = self.dropout${index}(x)\n`;
+          break;
+        case CNNLayerTypes.Output:
+          code += `        x = self.output(x)\n`;
           break;
       }
     });

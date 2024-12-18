@@ -13,7 +13,7 @@ export class CNNGenerator {
     ]);
   }
 
-  generateCode(framework: string, config: CNNConfig, modelType?: string): string {
+  generateCode(framework: string, config: CNNConfig): string {
     const generator = this.generators.get(framework.toLowerCase());
     if (!generator) {
       throw new Error(`Unsupported framework: ${framework}`);
@@ -21,7 +21,7 @@ export class CNNGenerator {
 
     return `${generator.generateImports()}
 
-${generator.generateModel(config, modelType)}
+${generator.generateModel(config)}
 
 ${generator.generateTrainingCode(config)}`;
   }

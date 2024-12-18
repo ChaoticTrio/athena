@@ -70,7 +70,7 @@ export type { DenseLayer, DropoutLayer, FCNLayer, InputLayer, OutputLayer };
 
 export interface FCNConfig {
   layers: FCNLayer[];
-  kerasType: string;
+  kerasType?: string;
 }
 
 export interface CodeGenerator {
