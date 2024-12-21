@@ -1,9 +1,5 @@
-import {
-  CopyOutlined,
-  DownloadOutlined,
-  QuestionCircleOutlined,
-} from "@ant-design/icons";
-import { Button, message, Radio, Splitter, Tabs, Tooltip } from "antd";
+import { QuestionCircleOutlined } from "@ant-design/icons";
+import { Button, message, Splitter, Tabs, Tooltip } from "antd";
 import { useState } from "react";
 import CNNForm from "./components/CNNForm";
 import CodeEditor from "./components/CodeEditor";
@@ -25,18 +21,6 @@ enum MODEL_TYPE {
   FCN = "FCN",
   CNN = "CNN",
   XXX = "XXX",
-}
-
-enum FRAMEWORK {
-  PyTorch = "PyTorch",
-  Keras = "Keras",
-  XXX = "XXX",
-}
-
-enum KERAS_TYPE {
-  Sequential = "Sequential",
-  Functional = "Functional",
-  Subclassing = "Subclassing",
 }
 
 function validateFCNLayers(layers: FCNLayer[]) {
@@ -123,8 +107,6 @@ function validateCNNLayers(layers: CNNLayer[]) {
 
 function App() {
   const [activeTab, setActiveTab] = useState<MODEL_TYPE>(MODEL_TYPE.FCN);
-  const [framework, setFramework] = useState<FRAMEWORK>(FRAMEWORK.PyTorch);
-  const [kerasType, setKerasType] = useState<KERAS_TYPE>(KERAS_TYPE.Sequential);
   const [maximizeViz, setMaximizeViz] = useState(false);
   const [cnnLayersForm, setCnnLayersForm] = useState<CNNLayer[]>([
     cnnEmptyLayers.Input(),
@@ -236,50 +218,6 @@ function App() {
     }
   };
 
-  const renderCode = () => {
-    return (
-      <div className="h-full">
-        <div className="code-header flex flex-row m-2 items-start">
-          <div className="framework-tabs flex flex-col">
-            <Radio.Group
-              options={Object.values(FRAMEWORK).map((f) => ({
-                label: f,
-                value: f,
-              }))}
-              value={framework}
-              onChange={(e) => setFramework(e.target.value as FRAMEWORK)}
-              optionType="button"
-              buttonStyle="solid"
-              className="mb-1 custom-radio-group"
-            />
-            {framework === FRAMEWORK.Keras && (
-              <Radio.Group
-                options={Object.values(KERAS_TYPE).map((f) => ({
-                  label: f,
-                  value: f,
-                }))}
-                value={kerasType}
-                onChange={(e) => setKerasType(e.target.value as KERAS_TYPE)}
-                optionType="button"
-                buttonStyle="solid"
-                className="mt-1 custom-radio-group"
-              />
-            )}
-          </div>
-          <div className="ml-auto flex flex-row items-center">
-            <Tooltip title="Copy" className="mr-1">
-              <Button icon={<CopyOutlined />} />
-            </Tooltip>
-            <Tooltip title="Download" className="ml-1">
-              <Button icon={<DownloadOutlined />} />
-            </Tooltip>
-          </div>
-        </div>
-        <CodeEditor />
-      </div>
-    );
-  };
-
   const generate = () => {
     if (activeTab === MODEL_TYPE.CNN) {
       const { success, content } = validateCNNLayers(cnnLayersForm);
@@ -307,6 +245,12 @@ function App() {
       console.log("Coming Soon");
     }
   };
+
+  // useEffect(() => {
+  //   generateFCNCode();
+  //   generateCNNCode();
+  // }, [kerasType]);
+
   return (
     <div className="app-container min-h-screen bg-slate-50">
       {contextHolder}
@@ -341,7 +285,13 @@ function App() {
         >
           <Splitter layout="vertical">
             <Splitter.Panel>{renderForm()}</Splitter.Panel>
-            <Splitter.Panel>{renderCode()}</Splitter.Panel>
+            <Splitter.Panel>
+              <CodeEditor
+                activeTab={activeTab}
+                fcnLayers={fcnLayers}
+                cnnLayers={cnnLayers}
+              />
+            </Splitter.Panel>
           </Splitter>
         </Splitter.Panel>
       </Splitter>

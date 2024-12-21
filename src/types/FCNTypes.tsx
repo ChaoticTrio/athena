@@ -67,3 +67,14 @@ const FCN_LIMITS = {
 
 export { ActivationFunctions, FCN_LIMITS, fcnEmptyLayers, FCNLayerTypes };
 export type { DenseLayer, DropoutLayer, FCNLayer, InputLayer, OutputLayer };
+
+export interface FCNConfig {
+  layers: FCNLayer[];
+  kerasType?: string;
+}
+
+export interface CodeGenerator {
+  generateModel(config: FCNConfig): string;
+  generateImports(): string;
+  generateTrainingCode(config: FCNConfig): string;
+} 

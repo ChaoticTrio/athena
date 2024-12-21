@@ -147,6 +147,7 @@ const CNN_LIMITS = {
 };
 
 export { CNN_LIMITS, cnnEmptyLayers, CNNLayerTypes };
+
 export type {
   CNNDenseLayer,
   CNNDropoutLayer,
@@ -158,3 +159,14 @@ export type {
   PaddingLayer,
   PoolLayer,
 };
+
+export interface CNNConfig {
+  layers: CNNLayer[];
+  kerasType?: string;
+}
+
+export interface CodeGenerator {
+  generateModel(config: CNNConfig): string;
+  generateImports(): string;
+  generateTrainingCode(config: CNNConfig): string;
+}

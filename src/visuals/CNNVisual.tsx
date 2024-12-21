@@ -16,11 +16,14 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import {
   CNNLayer,
-  CNNLayerTypes,
+  CNNOutputLayer,
   ConvLayer,
   InputLayer,
   PaddingLayer,
   PoolLayer,
+  FlattenLayer,
+  CNNDenseLayer,
+  CNNDropoutLayer,
 } from "../types/CNNTypes";
 
 // array of objects with req properties below
@@ -41,32 +44,7 @@ import {
 // Dropout - {p} - TODO
 // Normalization - {channels} - TODO
 
-function clipMinMax(x: number, min: number, max: number): number {
-  if (x < min) return min;
-  if (x > max) return max;
-  return x;
-}
-
 type V3 = { x: number; y: number; z: number };
-
-type Layer = {
-  type:
-    | "Input"
-    | "Conv"
-    | "Pool"
-    | "Dropout"
-    | "Normalization"
-    | "Padding"
-    | "Flatten"
-    | "Linear"
-    | "Gap";
-  size?: number | number[];
-  kernel_size?: number | number[];
-  stride?: number | number[];
-  padding?: number | number[];
-  p?: number;
-  activation?: string;
-};
 
 type ConvertedLayer = {
   type:
@@ -105,29 +83,6 @@ type SpriteProps = {
   line?: boolean;
 };
 
-function generateDataset(numOfCon?: number): Layer[] {
-  console.log("Generating dataset");
-  let res: Layer[] = [{ type: "Input", size: [224, 224, 3] }];
-  // res.push({ type: "Gap" });
-  res = res.concat(
-    Array.from(Array(numOfCon || 3).keys()).flatMap((e, i): Layer[] => {
-      return [
-        { type: "Padding", padding: 1 },
-        { type: "Conv", size: Math.pow(2, Math.min(5 + i, 9)), kernel_size: 3 },
-        { type: "Padding", padding: 1 },
-        { type: "Conv", size: Math.pow(2, Math.min(5 + i, 9)), kernel_size: 3 },
-        { type: "Pool", kernel_size: 2, stride: 2 },
-        // { type: "Gap" },
-      ];
-    })
-  );
-  res.push({ type: "Flatten" });
-  res.push({ type: "Linear", size: 64, activation: "ReLU" });
-  res.push({ type: "Linear", size: 64, activation: "ReLU" });
-  res.push({ type: "Linear", size: 6 });
-  console.log(res);
-  return res;
-}
 
 function formatInputLayer(layer: InputLayer): ConvertedLayer {
   const size = { x: layer.size[0], y: layer.size[1], z: layer.size[2] };
@@ -141,7 +96,6 @@ function formatInputLayer(layer: InputLayer): ConvertedLayer {
 
 function formatConvLayer(
   layer: ConvLayer,
-  i: number,
   currSize: V3
 ): ConvertedLayer {
   const size = {
@@ -159,7 +113,6 @@ function formatConvLayer(
 
 function formatPaddingLayer(
   layer: PaddingLayer,
-  i: number,
   currSize: V3
 ): ConvertedLayer {
   const newSize = {
@@ -177,7 +130,6 @@ function formatPaddingLayer(
 
 function formatPoolingLayer(
   layer: PoolLayer,
-  i: number,
   currSize: V3
 ): ConvertedLayer {
   const size = {
@@ -193,45 +145,24 @@ function formatPoolingLayer(
   };
 }
 
-const layerFormatters: Record<
-  CNNLayerTypes,
-  (layer: any, index: number, prevSize: V3) => ConvertedLayer
-> = {
+type LayerFormatters = {
+  Input?: (layer: InputLayer, currSize: V3) => ConvertedLayer;
+  Conv?: (layer: ConvLayer,  currSize: V3) => ConvertedLayer;
+  Padding?: (layer: PaddingLayer,  currSize: V3) => ConvertedLayer;
+  Pool?: (layer: PoolLayer,  currSize: V3) => ConvertedLayer;
+  Flatten?: (layer: FlattenLayer) => ConvertedLayer;
+  Dense?: (layer: CNNDenseLayer) => ConvertedLayer;
+  Dropout?: (layer: CNNDropoutLayer) => ConvertedLayer;
+  Output?: (layer: CNNOutputLayer) => ConvertedLayer;
+};
+
+const layerFormatters: LayerFormatters = {
   Input: formatInputLayer,
   Conv: formatConvLayer,
   Padding: formatPaddingLayer,
   Pool: formatPoolingLayer,
   // TODO: Add more layer formatters for Flatten, Dense, etc.
 } as const;
-
-function calcChannelWidth(n: number): number {
-  // return clipMinMax(Math.log2(n) / 10, 1, 5) / 4;
-  // return Math.log2(n) / 10;
-  return Math.log2(n) * 4;
-}
-
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number
-) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-}
 
 // source - https://github.com/vasturiano/three-spritetext/blob/master/src/index.js
 function Sprite({
@@ -316,36 +247,16 @@ function Sprite({
       context.lineWidth = cornerWidth;
       context.beginPath();
       [
-        !!relBorderRadius[0] && [
-          relBorderRadius[0],
-          hb,
-          hb,
-          relBorderRadius[0],
-        ],
-        !!relBorderRadius[1] && [
-          canvas.width - relBorderRadius[1],
-          canvas.width - hb,
-          hb,
-          relBorderRadius[1],
-        ],
-        !!relBorderRadius[2] && [
-          canvas.width - relBorderRadius[2],
-          canvas.width - hb,
-          canvas.height - hb,
-          canvas.height - relBorderRadius[2],
-        ],
-        !!relBorderRadius[3] && [
-          relBorderRadius[3],
-          hb,
-          canvas.height - hb,
-          canvas.height - relBorderRadius[3],
-        ],
+        relBorderRadius[0]? [relBorderRadius[0], hb, hb, relBorderRadius[0]] : null,
+        relBorderRadius[1]? [canvas.width - relBorderRadius[1], canvas.width - hb, hb, relBorderRadius[1]] : null,
+        relBorderRadius[2]? [canvas.width - relBorderRadius[2], canvas.width - hb, canvas.height - hb, canvas.height - relBorderRadius[2]] : null,
+        relBorderRadius[3]? [relBorderRadius[3], hb, canvas.height - hb, canvas.height - relBorderRadius[3]] : null,
       ]
-        .filter((d) => d)
-        .forEach(([x0, x1, y0, y1]) => {
-          context.moveTo(x0, y0);
-          context.quadraticCurveTo(x1, y0, x1, y1);
-        });
+      .filter((d): d is number[] => d!== null)
+      .forEach(([x0, x1, y0, y1]) => {
+        context.moveTo(x0, y0);
+        context.quadraticCurveTo(x1, y0, x1, y1);
+      });
       context.stroke();
     }
   }
@@ -405,8 +316,8 @@ function Sprite({
     }
   }
 
-  context.translate(...relBorder);
-  context.translate(...relPadding);
+  context.translate(relBorder[0], relBorder[1]);
+  context.translate(relPadding[0], relPadding[1]);
 
   context.font = font;
   context.fillStyle = textColor;
@@ -459,7 +370,7 @@ function Sprite({
     );
   }
 
-  const geometryRef = useRef();
+  const geometryRef = useRef<THREE.BufferGeometry | null>(null);
   useEffect(() => {
     if (geometryRef.current) {
       const positionAttribute = geometryRef.current.attributes.position;
@@ -545,7 +456,7 @@ function CNNLayerBox({
         opacity={0.5}
         transparent={true}
       />
-      <Edges linewidth={2} threshold={15} color={"black"} />
+      <Edges threshold={15} color={"black"} />
     </mesh>
   );
 }
@@ -624,23 +535,23 @@ function getMeshes(
   }
 ): { res: JSX.Element[]; zoom: number } {
   const res: JSX.Element[] = [];
-  const isWireframe: boolean = false;
   const k: { i: number } = { i: 0 };
 
   // First pass - validate and convert layers into standard format
   // Current size of the layer, used to calculate the size of the next layer
   let currSize: V3 = { x: 0, y: 0, z: 0 };
   const convertedLayers: ConvertedLayer[] = dataset.flatMap(
-    (layer, i): ConvertedLayer[] => {
-      const formatter = layerFormatters[layer.type];
+    (layer): ConvertedLayer[] => {
+      const formatter = layerFormatters[layer.type as keyof LayerFormatters];
 
-      if (!formatter) {
+      if (!formatter || !layer) {
         // throw new Error(`Invalid layer type: ${layer.type}`);
         // TODO: ignore for now
         return [];
       }
-
-      const currLayer = formatter(layer, i, currSize);
+      
+      // @ts-expect-error TODO: fix this
+      const currLayer = formatter(layer, currSize);
       // TODO: temp ignore Gap
       if (currLayer.type !== "Gap") {
         currSize = currLayer.size;
