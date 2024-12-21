@@ -218,16 +218,6 @@ function App() {
     }
   };
 
-  const renderCode = () => {
-    return (
-      <CodeEditor
-        activeTab={activeTab}
-        fcnLayers={fcnLayersForm}
-        cnnLayers={cnnLayersForm}
-      />
-    );
-  };
-
   const generate = () => {
     if (activeTab === MODEL_TYPE.CNN) {
       const { success, content } = validateCNNLayers(cnnLayersForm);
@@ -295,7 +285,13 @@ function App() {
         >
           <Splitter layout="vertical">
             <Splitter.Panel>{renderForm()}</Splitter.Panel>
-            <Splitter.Panel>{renderCode()}</Splitter.Panel>
+            <Splitter.Panel>
+              <CodeEditor
+                activeTab={activeTab}
+                fcnLayers={fcnLayers}
+                cnnLayers={cnnLayers}
+              />
+            </Splitter.Panel>
           </Splitter>
         </Splitter.Panel>
       </Splitter>

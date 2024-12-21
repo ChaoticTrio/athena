@@ -109,6 +109,11 @@ def train_model(model, train_loader, num_epochs=10):
             optimizer.step()
             running_loss += loss.item()
             
-        print(f'Epoch {epoch + 1}, Loss: {running_loss / len(train_loader)}')`;
+        print(f'Epoch {epoch + 1}, Loss: {running_loss / len(train_loader)}')
+
+# Example usage:
+# Assume train_loader is defined with proper inputs of size [batch_size, input_size] and labels of size [batch_size, input_size]
+# model = FCN()
+# train_model(model, train_loader)`;
   }
 } 

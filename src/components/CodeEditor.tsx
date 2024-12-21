@@ -100,7 +100,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   return (
-    <div className="h-full">
+    <div className="h-full overflow-hidden">
       <div className="code-header flex flex-row m-2 items-start">
         <div className="framework-tabs flex flex-col">
           <Radio.Group

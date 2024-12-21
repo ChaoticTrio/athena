@@ -6,9 +6,8 @@ export class KerasGenerator implements CodeGenerator {
    * @returns A string containing the import statements
    */
   generateImports(): string {
-    return `from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.optimizers import Adam`;
+    return `import keras
+from keras import layers`;
   }
 
   /**
@@ -68,22 +67,22 @@ from tensorflow.keras.optimizers import Adam`;
     let code = "";
     let prevLayer = "inputs";
     
-    config.layers.forEach((layer, index) => {
+    config.layers.forEach((layer) => {
       switch (layer.type) {
         case 'Input':
           code += `inputs = layers.Input(shape=(${layer?.size},))\n`;
           break;
         case 'Dense':
-          code += `x${index} = layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}')(${prevLayer})\n`;
-          prevLayer = `x${index}`;
+          code += `x = layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}')(${prevLayer})\n`;
+          prevLayer = `x`;
           break;
         case 'Dropout':
-          code += `x${index} = layers.Dropout(${layer.rate})(${prevLayer})\n`;
-          prevLayer = `x${index}`;
+          code += `x = layers.Dropout(${layer.rate})(${prevLayer})\n`;
+          prevLayer = `x`;
           break;
         case 'Output':
-          code += `x${index} = layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}')(${prevLayer})\n`;
-          prevLayer = `x${index}`;
+          code += `x = layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}')(${prevLayer})\n`;
+          prevLayer = `x`;
           break;
       }
     });
@@ -100,7 +99,7 @@ from tensorflow.keras.optimizers import Adam`;
   private generateSubclassingModel(config: FCNConfig): string {
     let code = "class FCNModel(keras.Model):\n";
     code += "    def __init__(self):\n";
-    code += "        super(FCNModel, self).__init__()\n";
+    code += "        super().__init__()\n";
 
     config.layers.forEach((layer, index) => {
       switch (layer.type) {
@@ -122,6 +121,9 @@ from tensorflow.keras.optimizers import Adam`;
           break;
         case 'Dropout':
           code += `        x = self.dropout${index}(x)\n`;
+          break;
+        case 'Output':
+          code += `        x = self.dense${index}(x)\n`;
           break;
       }
     });
@@ -151,7 +153,7 @@ from tensorflow.keras.optimizers import Adam`;
    * @param config The FCN configuration
    * @returns The generated code as a string
    */
-  generateTrainingCode(): string {
+  generateTrainingCode(config: FCNConfig): string {
     return `
 def train_model(model, x_train, y_train, epochs=10, batch_size=32):
     history = model.fit(
@@ -161,6 +163,9 @@ def train_model(model, x_train, y_train, epochs=10, batch_size=32):
         batch_size=batch_size,
         validation_split=0.2
     )
-    return history`;
+    return history
+\n# Example usage:
+# Assume x_train and y_train are defined with proper input shapes and labels
+${config?.kerasType == 'Subclassing' ? '# For Subclassing model, we need to create a subclass model first => model = FCNModel()\n' : ''}# train_model(model, x_train, y_train)`;
   }
 } 

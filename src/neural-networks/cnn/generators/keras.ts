@@ -7,8 +7,8 @@ export class KerasGenerator implements CodeGenerator {
    * @returns A string containing the import statements
    */
   generateImports(): string {
-    return `from tensorflow import keras
-from tensorflow.keras import layers`;
+    return `import keras
+from keras import layers`;
   }
 
   /**
@@ -79,38 +79,38 @@ from tensorflow.keras import layers`;
     let code = "";
     let prevLayer = "inputs";
     
-    config.layers.forEach((layer, index) => {
+    config.layers.forEach((layer) => {
       switch (layer.type) {
         case CNNLayerTypes.Input:
           code += `inputs = layers.Input(shape=(${layer?.size[0]}, ${layer?.size[1]}, ${layer?.size[2]}))\n`;
           break;
         case CNNLayerTypes.Conv:
-          code += `x${index} = layers.Conv2D(${layer?.size}, (${layer?.kernel[0]}, ${layer?.kernel[1]})))(${prevLayer})\n`;
-          prevLayer = `x${index}`;
+          code += `x = layers.Conv2D(${layer?.size}, (${layer?.kernel[0]}, ${layer?.kernel[1]}))(${prevLayer})\n`;
+          prevLayer = `x`;
           break;
         case CNNLayerTypes.Pool:
-          code += `x${index} = layers.MaxPooling2D(pool_size=(${layer?.kernel[0]}, ${layer?.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]}))(${prevLayer})\n`;
-          prevLayer = `x${index}`;
+          code += `x = layers.MaxPooling2D(pool_size=(${layer?.kernel[0]}, ${layer?.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]}))(${prevLayer})\n`;
+          prevLayer = `x`;
           break;
         case CNNLayerTypes.Padding:
-          code += `x${index} = layers.ZeroPadding2D(padding=(${layer?.padding[0]}, ${layer?.padding[1]}))(${prevLayer})\n`;
-          prevLayer = `x${index}`;
+          code += `x = layers.ZeroPadding2D(padding=(${layer?.padding[0]}, ${layer?.padding[1]}))(${prevLayer})\n`;
+          prevLayer = `x`;
           break;
         case CNNLayerTypes.Flatten:
-          code += `x${index} = layers.Flatten()(${prevLayer})\n`;
-          prevLayer = `x${index}`;
+          code += `x = layers.Flatten()(${prevLayer})\n`;
+          prevLayer = `x`;
           break;
         case CNNLayerTypes.Dense:
-          code += `x${index} = layers.Dense(${layer?.size}, activation='${layer.activation}')(${prevLayer})\n`;
-          prevLayer = `x${index}`;
+          code += `x = layers.Dense(${layer?.size}, activation='${layer.activation}')(${prevLayer})\n`;
+          prevLayer = `x`;
           break;
         case CNNLayerTypes.Dropout:
-          code += `x${index} = layers.Dropout(${layer.rate})(${prevLayer})\n`;
-          prevLayer = `x${index}`;
+          code += `x = layers.Dropout(${layer.rate})(${prevLayer})\n`;
+          prevLayer = `x`;
           break;
         case CNNLayerTypes.Output:
-          code += `x${index} = layers.Dense(${layer?.size}, activation='${layer.activation}')(${prevLayer})\n`;
-          prevLayer = `x${index}`;
+          code += `x = layers.Dense(${layer?.size}, activation='${layer.activation}')(${prevLayer})\n`;
+          prevLayer = `x`;
       }
     });
 
@@ -139,6 +139,18 @@ from tensorflow.keras import layers`;
         case CNNLayerTypes.Padding:
           code += `        self.pad${index} = layers.ZeroPadding2D(padding=(${layer?.padding[0]}, ${layer?.padding[1]}))\n`;
           break;
+        case CNNLayerTypes.Flatten:
+          code += `        self.flatten = layers.Flatten()\n`;
+          break;
+        case CNNLayerTypes.Dense:
+          code += `        self.dense${index} = layers.Dense(${layer?.size}, activation='${layer.activation}')\n`;
+          break;
+        case CNNLayerTypes.Dropout:
+          code += `        self.dropout${index} = layers.Dropout(${layer.rate})\n`;
+          break;
+        case CNNLayerTypes.Output:
+          code += `        self.output${index} = layers.Dense(${layer?.size}, activation='${layer.activation}')\n`;
+          break;
       }
     });
 
@@ -155,6 +167,17 @@ from tensorflow.keras import layers`;
         case CNNLayerTypes.Padding:
           code += `        x = self.pad${index}(x)\n`;
           break;
+        case CNNLayerTypes.Flatten:
+          code += `        x = self.flatten(x)\n`;
+          break;
+        case CNNLayerTypes.Dense:
+          code += `        x = self.dense${index}(x)\n`;
+          break;
+        case CNNLayerTypes.Dropout:
+          code += `        x = self.dropout${index}(x)\n`;
+          break;
+        case CNNLayerTypes.Output:
+          code += `        x = self.output${index}(x)\n`;
       }
     });
     code += "        return x\n";
@@ -167,7 +190,7 @@ from tensorflow.keras import layers`;
    * @param config The CNN configuration
    * @returns The generated code as a string
   */
-  generateTrainingCode(): string {
+  generateTrainingCode(config: CNNConfig): string {
     return `
 def train_model(model, x_train, y_train, epochs=10, batch_size=32):
     model.compile(
@@ -182,6 +205,9 @@ def train_model(model, x_train, y_train, epochs=10, batch_size=32):
         batch_size=batch_size,
         validation_split=0.2
     )
-    return history`;
+    return history
+\n# Example usage:
+# Assume x_train and y_train are defined with proper input shapes and labels
+${config?.kerasType == 'Subclassing' ? '# For Subclassing model, we need to create a subclass model first => model = FCNModel()\n' : ''}# train_model(model, x_train, y_train)`;
   }
 } 

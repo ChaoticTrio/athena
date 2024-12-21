@@ -29,8 +29,9 @@ class FCN(nn.Module):
         )
         
     def forward(self, x):
-        x = x.view(x.size(0), -1)  # Flatten the input
-        return self.layers(x)`;
+      x = self.flatten(x)
+      logits = self.layers(x)
+      return logits`;
   }
 
 /**
