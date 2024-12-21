@@ -184,3 +184,14 @@ export type {
   PaddingLayer,
   PoolLayer,
 };
+
+export interface CNNConfig {
+  layers: CNNLayer[];
+  kerasType?: string;
+}
+
+export interface CodeGenerator {
+  generateModel(config: CNNConfig): string;
+  generateImports(): string;
+  generateTrainingCode(config: CNNConfig): string;
+}

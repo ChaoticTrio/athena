@@ -98,3 +98,14 @@ export {
   sampleFCN,
 };
 export type { DenseLayer, DropoutLayer, FCNLayer, InputLayer, OutputLayer };
+
+export interface FCNConfig {
+  layers: FCNLayer[];
+  kerasType?: string;
+}
+
+export interface CodeGenerator {
+  generateModel(config: FCNConfig): string;
+  generateImports(): string;
+  generateTrainingCode(config: FCNConfig): string;
+} 

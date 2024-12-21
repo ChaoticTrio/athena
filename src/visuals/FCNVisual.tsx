@@ -79,121 +79,6 @@ function getLayerNodes(
   return { nodes, layerCenter, collapsed, annotation: layer.size.toString() };
 }
 
-// useful for declarative method of creating elements
-function getCircleElement(node: Point) {
-  return (
-    <circle
-      cx={node.x}
-      cy={node.y}
-      r="20"
-      stroke="black"
-      stroke-width="2"
-      fill="white"
-      pathLength={0}
-    />
-  );
-}
-
-// useful for declarative method of creating elements
-function getConnectionPath(
-  sX: number,
-  sY: number,
-  tX: number,
-  tY: number,
-  isBezier: boolean
-) {
-  if (isBezier) {
-    const cp1 = [(sX + tX) / 2, sY];
-    const cp2 = [(sX + tX) / 2, tY];
-
-    return (
-      <path
-        strokeWidth={Math.random() * 0.8}
-        strokeOpacity={1}
-        stroke="rgb(0, 0, 0)"
-        fill="none"
-        pathLength={0}
-        d={
-          "M" +
-          sX +
-          "," +
-          sY +
-          "C" +
-          cp1[0] +
-          "," +
-          cp1[1] +
-          " " +
-          cp2[0] +
-          "," +
-          cp2[1] +
-          " " +
-          tX +
-          "," +
-          tY
-        }
-      />
-    );
-  } else {
-    return (
-      <path
-        strokeWidth={Math.random()}
-        strokeOpacity={1}
-        stroke="rgb(0, 0, 0)"
-        fill="none"
-        pathLength={0}
-        d={"M" + sX + "," + sY + "L" + tX + "," + tY}
-      />
-    );
-  }
-}
-
-// useful for declarative method of creating elements
-function generateDiagram(dataset: Layer[], svgViewport: number) {
-  const centers: Point[][] = [];
-  const elements: JSX.Element[] = [];
-  let minX: number = Number.MAX_SAFE_INTEGER;
-  let maxX: number = Number.MIN_SAFE_INTEGER;
-  const xCenter = svgViewport / 2;
-  const yCenter = svgViewport / 2;
-  dataset.forEach((layer, layerInd) => {
-    const { nodes, layerCenter } = getLayerNodes(layer, layerInd);
-    const yShift = yCenter - layerCenter.y;
-    centers.push(
-      nodes.map((node) => {
-        node.y += yShift;
-        return node;
-      })
-    );
-    minX = Math.min(minX, layerCenter.x);
-    maxX = Math.max(maxX, layerCenter.x);
-  });
-  const xShift = xCenter - (minX + maxX) / 2;
-  centers.forEach((layer, index) => {
-    if (index === 0) {
-      return;
-    }
-    centers[index - 1].forEach((prevNode) => {
-      layer.forEach((currNode) => {
-        elements.push(
-          getConnectionPath(
-            prevNode.x + xShift,
-            prevNode.y,
-            currNode.x + xShift,
-            currNode.y,
-            true
-          )
-        );
-      });
-    });
-  });
-  centers.forEach((layer) => {
-    layer.forEach((node) => {
-      node.x += xShift;
-      elements.push(getCircleElement(node));
-    });
-  });
-  return elements;
-}
 
 function getPathAndNodeData(
   dataset: Layer[],
@@ -277,22 +162,6 @@ function getPathAndNodeData(
   return { paths, nodes, collapsed, annotations };
 }
 
-function getRandomInt(min: number, max: number) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function generateDataset(numOfLayers?: number): Layer[] {
-  const res = Array.from(Array(numOfLayers || 3).keys()).map((_) => {
-    return { type: "linear", size: getRandomInt(1, 8) };
-  });
-  console.log(res);
-  return res;
-}
-
-type AnnotationAlignment = "none" | "up" | "down";
-
 // Entry point, might need to replace dataset with a prop or return an update function
 function FCNVisual({
   configRef,
@@ -307,13 +176,12 @@ function FCNVisual({
   toggleMaximize: () => void;
   maximizeState: boolean;
 }): JSX.Element {
-  const [showText, setShowText] = useState<AnnotationAlignment>("down");
-  const nodeRef = useRef();
-  const pathRef = useRef();
-  const collapsedRef = useRef();
-  const annotationRef = useRef();
-  const wrapperRef = useRef();
-  const groupRef = useRef();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const groupRef = useRef<SVGGElement>(null);
+  const pathRef = useRef<SVGGElement>(null);
+  const nodeRef = useRef<SVGGElement>(null);
+  const collapsedRef = useRef<SVGGElement>(null);
+  const annotationRef = useRef<SVGGElement>(null);
   const xViewBox = 300 * fcnLayers.length,
     yViewBox = 1200;
   const transitionDuration = 500;
@@ -359,18 +227,15 @@ function FCNVisual({
   };
 
   useEffect(() => {
-    let prevSize = 0;
+    if (!wrapperRef.current || !groupRef.current) return;
     const layers: Layer[] = fcnLayers.flatMap((layer) => {
       switch (layer.type) {
         case FCNLayerTypes.Input:
-          prevSize = layer.size;
-          return [
-            {
-              type: layer.type as string,
-              size: layer.size,
-              label: "Input",
-            },
-          ];
+          return [{
+            type: layer.type as string,
+            size: layer.size,
+            label: "Input",
+          }];
         case FCNLayerTypes.Dense:
           prevSize = layer.size;
           return [
@@ -394,14 +259,13 @@ function FCNVisual({
     });
     const wrapper = d3.select(wrapperRef.current);
     const zoomGroup = d3.select(groupRef.current);
-    const zoomBehavior = d3
-      .zoom()
+    const zoomBehavior = d3.zoom<HTMLDivElement, unknown>()
       .scaleExtent([0.5, 3]) // Zoom limits
       .on("zoom", (event) => {
         // Apply the transform to the parent `<g>`
         zoomGroup.attr("transform", event.transform);
       });
-    wrapper.call(zoomBehavior);
+    wrapper.call(zoomBehavior as d3.ZoomBehavior<HTMLDivElement, unknown>);
     const { paths, nodes, collapsed, annotations } = getPathAndNodeData(
       layers,
       xViewBox,
@@ -437,7 +301,7 @@ function FCNVisual({
               );
             })
             .attr("stroke", "black")
-            .attr("stroke-width", (d) => Math.random() * 0.8)
+            .attr("stroke-width", () => Math.random() * 0.8)
             .attr("fill", "none")
             .attr("stroke-opacity", 0)
             .call((enter) =>
