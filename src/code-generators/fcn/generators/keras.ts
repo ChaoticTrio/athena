@@ -1,4 +1,8 @@
-import { CodeGenerator, FCNConfig} from '../../../types/FCNTypes';
+import {
+  CodeGenerator,
+  FCNConfig,
+  FCNLayerTypes,
+} from "../../../types/FCNTypes";
 
 export class KerasGenerator implements CodeGenerator {
   /**
@@ -17,13 +21,13 @@ from keras import layers`;
    * @returns The generated code as a string
    */
   generateModel(config: FCNConfig): string {
-    const modelType = config.kerasType || 'Sequential';
+    const modelType = config.kerasType || "Sequential";
     switch (modelType) {
-      case 'Functional':
+      case "Functional":
         return this.generateFunctionalModel(config);
-      case 'Subclassing':
+      case "Subclassing":
         return this.generateSubclassingModel(config);
-      case 'Sequential':
+      case "Sequential":
       default:
         return this.generateSequentialModel(config);
     }
@@ -39,24 +43,27 @@ from keras import layers`;
 
     config.layers.forEach((layer) => {
       switch (layer.type) {
-        case 'Input':
-          code += `model.add(layers.Input(shape=(${layer?.size},)))\n`;
+        case FCNLayerTypes.Input:
+          code += `model.add(layers.Input(shape=(${layer.size},)))\n`;
           break;
-        case 'Dense':
-          code += `model.add(layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}'))\n`;
+        case FCNLayerTypes.Dense:
+          code += `model.add(layers.Dense(${
+            layer.size
+          }, activation='${layer.activation.toLowerCase()}'))\n`;
           break;
-        case 'Dropout':
+        case FCNLayerTypes.Dropout:
           code += `model.add(layers.Dropout(${layer.rate}))\n`;
           break;
-        case 'Output':
-          code += `model.add(layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}'))\n`;
+        case FCNLayerTypes.Output:
+          code += `model.add(layers.Dense(${
+            layer.size
+          }, activation='${layer.activation.toLowerCase()}'))\n`;
           break;
       }
     });
 
     return code;
   }
-
 
   /**
    * Generates a Keras functional model based on the given FCN configuration.
@@ -66,22 +73,26 @@ from keras import layers`;
   private generateFunctionalModel(config: FCNConfig): string {
     let code = "";
     let prevLayer = "inputs";
-    
+
     config.layers.forEach((layer) => {
       switch (layer.type) {
-        case 'Input':
-          code += `inputs = layers.Input(shape=(${layer?.size},))\n`;
+        case FCNLayerTypes.Input:
+          code += `inputs = layers.Input(shape=(${layer.size},))\n`;
           break;
-        case 'Dense':
-          code += `x = layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}')(${prevLayer})\n`;
+        case FCNLayerTypes.Dense:
+          code += `x = layers.Dense(${
+            layer.size
+          }, activation='${layer.activation.toLowerCase()}')(${prevLayer})\n`;
           prevLayer = `x`;
           break;
-        case 'Dropout':
+        case FCNLayerTypes.Dropout:
           code += `x = layers.Dropout(${layer.rate})(${prevLayer})\n`;
           prevLayer = `x`;
           break;
-        case 'Output':
-          code += `x = layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}')(${prevLayer})\n`;
+        case FCNLayerTypes.Output:
+          code += `x = layers.Dense(${
+            layer.size
+          }, activation='${layer.activation.toLowerCase()}')(${prevLayer})\n`;
           prevLayer = `x`;
           break;
       }
@@ -103,11 +114,18 @@ from keras import layers`;
 
     config.layers.forEach((layer, index) => {
       switch (layer.type) {
-        case 'Dense':
-          code += `        self.dense${index} = layers.Dense(${layer?.size}, activation='${this.getActivation(layer?.activation)}')\n`;
+        case FCNLayerTypes.Dense:
+          code += `        self.dense${index} = layers.Dense(${
+            layer.size
+          }, activation='${layer.activation.toLowerCase()}')\n`;
           break;
-        case 'Dropout':
+        case FCNLayerTypes.Dropout:
           code += `        self.dropout${index} = layers.Dropout(${layer.rate})\n`;
+          break;
+        case FCNLayerTypes.Output:
+          code += `        self.dense${index} = layers.Dense(${
+            layer.size
+          }, activation='${layer.activation.toLowerCase()}')\n`;
           break;
       }
     });
@@ -116,13 +134,13 @@ from keras import layers`;
     code += "        x = inputs\n";
     config.layers.forEach((layer, index) => {
       switch (layer.type) {
-        case 'Dense':
+        case FCNLayerTypes.Dense:
           code += `        x = self.dense${index}(x)\n`;
           break;
-        case 'Dropout':
+        case FCNLayerTypes.Dropout:
           code += `        x = self.dropout${index}(x)\n`;
           break;
-        case 'Output':
+        case FCNLayerTypes.Output:
           code += `        x = self.dense${index}(x)\n`;
           break;
       }
@@ -130,22 +148,6 @@ from keras import layers`;
     code += "        return x\n";
 
     return code;
-  }
-
-  /**
-   * Returns the Keras-compatible activation string for the given activation type.
-   * If the given type is not recognized, it defaults to 'relu'.
-   * @param activation The activation type to map
-   * @returns The Keras-compatible activation string
-   */
-  private getActivation(activation: string): string {
-    const activationMap: Record<string, string> = {
-      'ReLU': 'relu',
-      'Sigmoid': 'sigmoid',
-      'Tanh': 'tanh',
-      'Softmax': 'softmax'
-    };
-    return activationMap[activation] || 'relu';
   }
 
   /**
@@ -166,6 +168,10 @@ def train_model(model, x_train, y_train, epochs=10, batch_size=32):
     return history
 \n# Example usage:
 # Assume x_train and y_train are defined with proper input shapes and labels
-${config?.kerasType == 'Subclassing' ? '# For Subclassing model, we need to create a subclass model first => model = FCNModel()\n' : ''}# train_model(model, x_train, y_train)`;
+${
+  config?.kerasType == "Subclassing"
+    ? "# For Subclassing model, we need to create a subclass model first => model = FCNModel()\n"
+    : ""
+}# train_model(model, x_train, y_train)`;
   }
-} 
+}

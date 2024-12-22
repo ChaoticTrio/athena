@@ -152,6 +152,7 @@ function outputElementForm(
 const layerFormatters: Record<
   string,
   (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     element: any,
     index: number,
     handleFormElementChange: (index: number, element: FCNLayer) => void
@@ -167,9 +168,11 @@ const layerOptions = ["Dense", "Dropout", "Output"];
 const actFuncs = Object.keys(ActivationFunctions);
 
 function FCNForm({
+  itemRef,
   fcnLayers,
   setFcnLayers,
 }: {
+  itemRef: React.MutableRefObject<null>;
   fcnLayers: FCNLayer[];
   setFcnLayers: (fcnLayers: FCNLayer[]) => void;
 }): JSX.Element {
@@ -188,26 +191,26 @@ function FCNForm({
     setFcnLayers(newFormElements);
   };
 
-    const moveUpFormElement = (index: number) => {
-      if (index < 2) return;
-      const newFormElements = [...fcnLayers];
-      [newFormElements[index], newFormElements[index - 1]] = [
-        newFormElements[index - 1],
-        newFormElements[index],
-      ];
-      setFcnLayers(newFormElements);
-    };
-
-    const moveDownFormElement = (index: number) => {
-      if (index === 0 || index === fcnLayers.length - 1) return;
-      const newFormElements = [...fcnLayers];
-      [newFormElements[index], newFormElements[index + 1]] = [
-        newFormElements[index + 1],
-        newFormElements[index],
-      ];
-      setFcnLayers(newFormElements);
+  const moveUpFormElement = (index: number) => {
+    if (index < 2) return;
+    const newFormElements = [...fcnLayers];
+    [newFormElements[index], newFormElements[index - 1]] = [
+      newFormElements[index - 1],
+      newFormElements[index],
+    ];
+    setFcnLayers(newFormElements);
   };
-  
+
+  const moveDownFormElement = (index: number) => {
+    if (index === 0 || index === fcnLayers.length - 1) return;
+    const newFormElements = [...fcnLayers];
+    [newFormElements[index], newFormElements[index + 1]] = [
+      newFormElements[index + 1],
+      newFormElements[index],
+    ];
+    setFcnLayers(newFormElements);
+  };
+
   const resetForm = () => {
     setFcnLayers([fcnEmptyLayers.Input()]);
   };
@@ -217,6 +220,7 @@ function FCNForm({
       <Form className="flex flex-col items-center w-full py-2 px-4 space-y-2">
         {fcnLayers.map((element, index) => (
           <div
+            ref={index === 0 ? itemRef : null}
             key={index}
             className="flex flex-row w-full bg-slate-50 py-2 px-4 rounded-lg shadow-sm border border-slate-200 justify-start items-center"
           >

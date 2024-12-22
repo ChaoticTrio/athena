@@ -281,6 +281,7 @@ const actFuncs = Object.keys(ActivationFunctions);
 const layerFormatters: Record<
   string,
   (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     element: any,
     index: number,
     handleFormElementChange: (index: number, element: CNNLayer) => void
@@ -297,9 +298,11 @@ const layerFormatters: Record<
 } as const;
 
 function CNNForm({
+  itemRef,
   cnnLayers,
   setCnnLayers,
 }: {
+  itemRef: React.MutableRefObject<null>;
   cnnLayers: CNNLayer[];
   setCnnLayers: (layers: CNNLayer[]) => void;
 }): JSX.Element {
@@ -345,6 +348,7 @@ function CNNForm({
       <Form className="flex flex-col items-center w-full py-2 px-4 space-y-2">
         {cnnLayers.map((element, index) => (
           <div
+            ref={index === 0 ? itemRef : null}
             key={index}
             className="flex flex-row w-full bg-slate-50 py-2 px-4 rounded-lg shadow-sm border border-slate-200 justify-start items-center"
           >

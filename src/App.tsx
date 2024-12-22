@@ -1,6 +1,15 @@
-import { QuestionCircleOutlined } from "@ant-design/icons";
-import { Button, message, Splitter, Tabs, Tooltip } from "antd";
-import { useState } from "react";
+import Icon, { QuestionCircleOutlined, SyncOutlined } from "@ant-design/icons";
+import {
+  Badge,
+  Button,
+  message,
+  Splitter,
+  Tabs,
+  Tooltip,
+  Tour,
+  TourProps,
+} from "antd";
+import { useEffect, useRef, useState } from "react";
 import CNNForm from "./components/CNNForm";
 import CodeEditor from "./components/CodeEditor";
 import FCNForm from "./components/FCNForm";
@@ -8,6 +17,7 @@ import { cnnEmptyLayers, CNNLayer } from "./types/CNNTypes";
 import { fcnEmptyLayers, FCNLayer } from "./types/FCNTypes";
 import CNNVisual from "./visuals/CNNVisual";
 import FCNVisual from "./visuals/FCNVisual";
+import LogoSVG from "/src/assets/Logo.svg?react";
 
 const fontFace = new FontFace(
   "JetBrainsMono",
@@ -20,7 +30,6 @@ fontFace.load().then((font) => {
 enum MODEL_TYPE {
   FCN = "FCN",
   CNN = "CNN",
-  XXX = "XXX",
 }
 
 function validateFCNLayers(layers: FCNLayer[]) {
@@ -34,16 +43,6 @@ function validateFCNLayers(layers: FCNLayer[]) {
   }
   if (layers[layers.length - 1].type !== "Output") {
     return { success: false, content: "Last layer must be an output layer" };
-  }
-  for (let i = 0; i < layers.length; i++) {
-    if (layers[i].type === "Dropout") {
-      if (layers[i - 1].type !== "Dense") {
-        return {
-          success: false,
-          content: "Dropout layers must be preceded by a dense layer",
-        };
-      }
-    }
   }
   return { success: true, content: "" };
 }
@@ -73,10 +72,10 @@ function validateCNNLayers(layers: CNNLayer[]) {
         flattenIndex = i;
         break;
       case "Dropout":
-        if (layers[i - 1].type !== "Dense") {
+        if (flattenIndex === -1) {
           return {
             success: false,
-            content: "Dropout layers must be preceded by a dense layer",
+            content: "Dropout layers must come after a flatten layer",
           };
         }
         break;
@@ -93,10 +92,16 @@ function validateCNNLayers(layers: CNNLayer[]) {
           success: false,
           content: "Output layer must be the last layer",
         };
-      // TODO
-      // case "Conv":
-      // case "Pooling":
-      // case "Padding":
+      case "Conv":
+      case "Pool":
+      case "Padding":
+        if (flattenIndex !== -1) {
+          return {
+            success: false,
+            content: `${layers[i].type} layers must come before flatten layer`,
+          };
+        }
+        break;
       default:
         break;
     }
@@ -106,6 +111,8 @@ function validateCNNLayers(layers: CNNLayer[]) {
 }
 
 function App() {
+  const [inSync, setInSync] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MODEL_TYPE>(MODEL_TYPE.FCN);
   const [maximizeViz, setMaximizeViz] = useState(false);
   const [cnnLayersForm, setCnnLayersForm] = useState<CNNLayer[]>([
@@ -117,6 +124,99 @@ function App() {
   ]);
   const [fcnLayers, setFcnLayers] = useState<FCNLayer[]>([]);
   const [messageApi, contextHolder] = message.useMessage();
+  const typeRef = useRef(null),
+    genRef = useRef(null),
+    codeRef = useRef(null);
+  const fcnRefs = {
+    itemRef: useRef(null),
+    configRef: useRef(null),
+    dlRef: useRef(null),
+  };
+  const cnnRefs = {
+    itemRef: useRef(null),
+    configRef: useRef(null),
+    dlRef: useRef(null),
+  };
+
+  const fcnSteps: TourProps["steps"] = [
+    {
+      title: "Model Type",
+      description: "Choose the type of your model",
+      target: () => typeRef.current,
+    },
+    {
+      title: "Layers configuation",
+      description: "Add and config layer type and parameters.",
+      target: () => fcnRefs.itemRef.current,
+    },
+    {
+      title: "Arrange Layers",
+      description: "Move layers to rearrange or delete them.",
+      target: () => fcnRefs.itemRef.current,
+    },
+    {
+      title: "Generate",
+      description: "Generate code and visualization with one click.",
+      target: () => genRef.current,
+    },
+    {
+      title: "Configure annotations",
+      description: "Configure the visualization's annotation settings.",
+      target: () => fcnRefs.configRef.current,
+      placement: "right",
+    },
+    {
+      title: "Download",
+      description: "Download the visualization.",
+      target: () => fcnRefs.dlRef.current,
+    },
+    {
+      title: "Copy code",
+      description: "Copy code or download as .py file.",
+      target: () => codeRef.current,
+      placement: "left",
+    },
+  ];
+
+  const cnnSteps: TourProps["steps"] = [
+    {
+      title: "Model Type",
+      description: "Choose the type of your model",
+      target: () => typeRef.current,
+    },
+    {
+      title: "Layers configuation",
+      description: "Add and config layer type and parameters.",
+      target: () => cnnRefs.itemRef.current,
+    },
+    {
+      title: "Arrange Layers",
+      description: "Move layers to rearrange or delete them.",
+      target: () => cnnRefs.itemRef.current,
+    },
+    {
+      title: "Generate",
+      description: "Generate code and visualization with one click.",
+      target: () => genRef.current,
+    },
+    {
+      title: "Configure annotations",
+      description: "Configure the visualization's annotation settings.",
+      target: () => cnnRefs.configRef.current,
+      placement: "right",
+    },
+    {
+      title: "Download",
+      description: "Download the visualization.",
+      target: () => cnnRefs.dlRef.current,
+    },
+    {
+      title: "Copy code",
+      description: "Copy code or download as .py file.",
+      target: () => codeRef.current,
+      placement: "left",
+    },
+  ];
 
   const renderForm = () => {
     console.log("rendering form");
@@ -135,6 +235,7 @@ function App() {
               key: MODEL_TYPE.FCN,
               label: (
                 <span
+                  ref={typeRef}
                   className={`py-2 px-4 rounded-lg ${
                     activeTab === MODEL_TYPE.FCN
                       ? "bg-slate-700 text-white"
@@ -146,6 +247,7 @@ function App() {
               ),
               children: (
                 <FCNForm
+                  itemRef={fcnRefs.itemRef}
                   fcnLayers={fcnLayersForm}
                   setFcnLayers={setFcnLayersForm}
                 />
@@ -166,25 +268,11 @@ function App() {
               ),
               children: (
                 <CNNForm
+                  itemRef={cnnRefs.itemRef}
                   cnnLayers={cnnLayersForm}
                   setCnnLayers={setCnnLayersForm}
                 />
               ),
-            },
-            {
-              key: MODEL_TYPE.XXX,
-              label: (
-                <span
-                  className={`py-2 px-4 rounded-lg ${
-                    activeTab === MODEL_TYPE.XXX
-                      ? "bg-slate-700 text-white"
-                      : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  {MODEL_TYPE.XXX}
-                </span>
-              ),
-              children: <div>Coming Soon</div>,
             },
           ]}
         />
@@ -198,6 +286,8 @@ function App() {
       case "FCN":
         return (
           <FCNVisual
+            configRef={fcnRefs.configRef}
+            dlRef={fcnRefs.dlRef}
             fcnLayers={fcnLayers}
             toggleMaximize={() => setMaximizeViz(!maximizeViz)}
             maximizeState={maximizeViz}
@@ -206,6 +296,8 @@ function App() {
       case "CNN":
         return (
           <CNNVisual
+            configRef={cnnRefs.configRef}
+            dlRef={cnnRefs.dlRef}
             layers={cnnLayers}
             toggleMaximize={() => setMaximizeViz(!maximizeViz)}
             maximizeState={maximizeViz}
@@ -223,6 +315,7 @@ function App() {
       const { success, content } = validateCNNLayers(cnnLayersForm);
       if (success) {
         setCnnLayers(structuredClone(cnnLayersForm));
+        setInSync(true);
       } else {
         messageApi.open({
           type: "error",
@@ -234,6 +327,7 @@ function App() {
       const { success, content } = validateFCNLayers(fcnLayersForm);
       if (success) {
         setFcnLayers(structuredClone(fcnLayersForm));
+        setInSync(true);
       } else {
         messageApi.open({
           type: "error",
@@ -246,31 +340,68 @@ function App() {
     }
   };
 
-  // useEffect(() => {
-  //   generateFCNCode();
-  //   generateCNNCode();
-  // }, [kerasType]);
+  useEffect(() => {
+    setInSync(false);
+  }, [cnnLayersForm, fcnLayersForm, activeTab]);
 
   return (
     <div className="app-container min-h-screen bg-slate-50">
       {contextHolder}
+      <Tour
+        open={tourOpen}
+        onClose={() => setTourOpen(false)}
+        steps={
+          activeTab === MODEL_TYPE.CNN
+            ? cnnSteps
+            : activeTab === MODEL_TYPE.FCN
+            ? fcnSteps
+            : []
+        }
+        indicatorsRender={(current, total) => (
+          <span>
+            {current + 1} / {total}
+          </span>
+        )}
+        type="primary"
+      />
       <div className="header flex items-center justify-between p-4 bg-white border-b border-slate-200">
-        <Button
-          type="primary"
-          className="bg-slate-700 hover:bg-slate-800 border-none generate-button"
-          onClick={generate}
-        >
-          Generate
-        </Button>
+        <Icon component={LogoSVG} style={{ fontSize: 32 }} />
+        <Badge
+          // className="start-1/2 translate-x-[-50%]"
+          count={
+            inSync ? (
+              0
+            ) : (
+              <SyncOutlined
+                // spin
 
-        <div className="right-controls">
-          <Tooltip title="Help">
-            <Button
-              icon={<QuestionCircleOutlined />}
-              className="text-slate-600 hover:text-slate-800 hover:bg-slate-50"
-            />
-          </Tooltip>
-        </div>
+                style={{
+                  // background: "white",
+                  // borderRadius: "50%",
+                  color: "#faad14",
+                  fontSize: "1.25rem",
+                }}
+              />
+            )
+          }
+        >
+          <Button
+            ref={genRef}
+            type="primary"
+            className="px-8 py-1 text-white rounded bg-slate-700 hover:bg-slate-800 border-none"
+            onClick={generate}
+          >
+            Generate
+          </Button>
+        </Badge>
+
+        <Tooltip title="Help">
+          <Button
+            icon={<QuestionCircleOutlined />}
+            className="text-slate-600 hover:text-slate-800 hover:bg-slate-50"
+            onClick={() => setTourOpen(true)}
+          />
+        </Tooltip>
       </div>
       <Splitter
         style={{ height: "100vh", boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)" }}
@@ -287,6 +418,7 @@ function App() {
             <Splitter.Panel>{renderForm()}</Splitter.Panel>
             <Splitter.Panel>
               <CodeEditor
+                codeRef={codeRef}
                 activeTab={activeTab}
                 fcnLayers={fcnLayers}
                 cnnLayers={cnnLayers}

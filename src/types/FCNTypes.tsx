@@ -65,7 +65,42 @@ const FCN_LIMITS = {
   },
 };
 
-export { ActivationFunctions, FCN_LIMITS, fcnEmptyLayers, FCNLayerTypes };
+const sampleFCN: () => FCNLayer[] = () => [
+  { type: "Input", size: 8 } as InputLayer,
+  {
+    type: "Dense",
+    size: 16,
+    activation: ActivationFunctions.ReLU,
+  } as DenseLayer,
+  {
+    type: "Dense",
+    size: 16,
+    activation: ActivationFunctions.Sigmoid,
+  } as DenseLayer,
+  {
+    type: "Dense",
+    size: 16,
+    activation: ActivationFunctions.Softmax,
+  } as DenseLayer,
+  {
+    type: "Dense",
+    size: 16,
+    activation: ActivationFunctions.Tanh,
+  } as DenseLayer,
+  {
+    type: "Output",
+    size: 8,
+    activation: ActivationFunctions.ReLU,
+  } as OutputLayer,
+];
+
+export {
+  ActivationFunctions,
+  FCN_LIMITS,
+  fcnEmptyLayers,
+  FCNLayerTypes,
+  sampleFCN,
+};
 export type { DenseLayer, DropoutLayer, FCNLayer, InputLayer, OutputLayer };
 
 export interface FCNConfig {
@@ -77,4 +112,4 @@ export interface CodeGenerator {
   generateModel(config: FCNConfig): string;
   generateImports(): string;
   generateTrainingCode(config: FCNConfig): string;
-} 
+}

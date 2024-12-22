@@ -1,11 +1,14 @@
 import {
   DownloadOutlined,
+  DownOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
+  StopOutlined,
+  UpOutlined,
 } from "@ant-design/icons";
-import { Button, Tooltip } from "antd";
+import { Button, Segmented, Tooltip } from "antd";
 import * as d3 from "d3";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FCNLayer, FCNLayerTypes } from "../types/FCNTypes";
 
 type Layer = {
@@ -30,6 +33,10 @@ type Annotation = {
   text: string;
 };
 
+type AnnotationAlignment = "none" | "up" | "down";
+
+const SPLIT_THRESHOLD = 10; // Keep this even
+
 function getNodeCenter(layerInd: number, nodeNum: number): Point {
   return { x: layerInd * 300 + 100, y: nodeNum * 75 + 25 };
 }
@@ -42,7 +49,6 @@ function getCollapsedCenters(a: Point, b: Point): Point[] {
   return collapsed;
 }
 
-const SPLIT_THRESHOLD = 10; // Keep this even
 function getLayerNodes(
   layer: Layer,
   layerInd: number
@@ -75,7 +81,6 @@ function getLayerNodes(
   };
   return { nodes, layerCenter, collapsed, annotation: layer.size.toString() };
 }
-
 
 function getPathAndNodeData(
   dataset: Layer[],
@@ -159,16 +164,20 @@ function getPathAndNodeData(
   return { paths, nodes, collapsed, annotations };
 }
 
-// Entry point, might need to replace dataset with a prop or return an update function
 function FCNVisual({
+  configRef,
+  dlRef,
   fcnLayers,
   toggleMaximize,
   maximizeState,
 }: {
+  configRef: React.MutableRefObject<null>;
+  dlRef: React.MutableRefObject<null>;
   fcnLayers: FCNLayer[];
   toggleMaximize: () => void;
   maximizeState: boolean;
 }): JSX.Element {
+  const [showText, setShowText] = useState<AnnotationAlignment>("down");
   const wrapperRef = useRef<HTMLDivElement>(null);
   const groupRef = useRef<SVGGElement>(null);
   const pathRef = useRef<SVGGElement>(null);
@@ -224,17 +233,21 @@ function FCNVisual({
     const layers: Layer[] = fcnLayers.flatMap((layer) => {
       switch (layer.type) {
         case FCNLayerTypes.Input:
-          return [{
-            type: layer.type as string,
-            size: layer.size,
-            label: "Input",
-          }];
+          return [
+            {
+              type: layer.type as string,
+              size: layer.size,
+              label: "Input",
+            },
+          ];
         case FCNLayerTypes.Dense:
-          return [{
-            type: layer.type as string,
-            size: layer.size,
-            label: layer.activation,
-          }];
+          return [
+            {
+              type: layer.type as string,
+              size: layer.size,
+              label: layer.activation,
+            },
+          ];
         case FCNLayerTypes.Dropout:
           return [];
         case FCNLayerTypes.Output:
@@ -249,7 +262,8 @@ function FCNVisual({
     });
     const wrapper = d3.select(wrapperRef.current);
     const zoomGroup = d3.select(groupRef.current);
-    const zoomBehavior = d3.zoom<HTMLDivElement, unknown>()
+    const zoomBehavior = d3
+      .zoom<HTMLDivElement, unknown>()
       .scaleExtent([0.5, 3]) // Zoom limits
       .on("zoom", (event) => {
         // Apply the transform to the parent `<g>`
@@ -304,7 +318,7 @@ function FCNVisual({
           update
             .attr("stroke", "black")
             .attr("stroke-opacity", 1)
-            .attr("stroke-width", () => Math.random() * 0.8)
+            // .attr("stroke-width", (d) => Math.random() * 0.8)
             .call((update) =>
               update
                 .transition()
@@ -429,7 +443,7 @@ function FCNVisual({
           enter
             .append("text")
             .attr("x", (d) => d.x)
-            .attr("y", (d) => d.y)
+            .attr("y", (d) => (showText === "down" ? d.y : yViewBox - d.y))
             .attr("fill", "black")
             .attr("opacity", 0)
             .attr("font-size", 30)
@@ -437,7 +451,10 @@ function FCNVisual({
             .attr("text-anchor", "middle")
             .text((d) => d.text)
             .call((enter) =>
-              enter.transition().duration(transitionDuration).attr("opacity", 1)
+              enter
+                .transition()
+                .duration(transitionDuration)
+                .attr("opacity", showText === "none" ? 0 : 1)
             ),
         // Update: Modify existing text elements
         (update) =>
@@ -447,9 +464,9 @@ function FCNVisual({
               update
                 .transition()
                 .duration(transitionDuration)
-                .attr("opacity", 1)
+                .attr("opacity", showText === "none" ? 0 : 1)
                 .attr("x", (d) => d.x)
-                .attr("y", (d) => d.y)
+                .attr("y", (d) => (showText === "down" ? d.y : yViewBox - d.y))
             ),
         // Exit: Remove unused text elements
         (exit) =>
@@ -464,7 +481,7 @@ function FCNVisual({
     return () => {
       wrapper.on(".zoom", null); // Clean up zoom behavior on unmount
     };
-  }, [fcnLayers]);
+  }, [fcnLayers, showText]);
 
   return (
     <div
@@ -472,8 +489,24 @@ function FCNVisual({
       style={{ background: "#f0f0f0" }}
       ref={wrapperRef}
     >
+      <Segmented
+        ref={configRef}
+        key={1}
+        className="absolute m-2 z-10 border-slate-500 border-2"
+        vertical
+        options={[
+          { value: "none", icon: <StopOutlined /> },
+          { value: "up", icon: <UpOutlined /> },
+          { value: "down", icon: <DownOutlined /> },
+        ]}
+        value={showText}
+        onChange={(value) => {
+          setShowText(value as AnnotationAlignment);
+        }}
+      />
       <Tooltip key={3} placement="left" title="Download">
         <Button
+          ref={dlRef}
           className="absolute z-10 right-10 m-2 border-2 border-slate-500 "
           icon={<DownloadOutlined />}
           size="middle"

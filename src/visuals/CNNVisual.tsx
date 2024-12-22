@@ -1,48 +1,18 @@
 import {
   ColumnHeightOutlined,
   DownloadOutlined,
-  DownOutlined,
   FullscreenExitOutlined,
   FullscreenOutlined,
   LineOutlined,
   StopOutlined,
   SwapOutlined,
-  UpOutlined,
 } from "@ant-design/icons";
 import { Edges, OrbitControls, OrthographicCamera } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Button, Segmented, Tooltip } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import * as THREE from "three";
-import {
-  CNNLayer,
-  CNNOutputLayer,
-  ConvLayer,
-  InputLayer,
-  PaddingLayer,
-  PoolLayer,
-  FlattenLayer,
-  CNNDenseLayer,
-  CNNDropoutLayer,
-} from "../types/CNNTypes";
-
-// array of objects with req properties below
-// Input - {
-//   size: [x, y, z]
-// }
-// CNN - {
-//   size: output_channels as a number,
-//   kernel_size: number for [x, x] or number[] for [x, y],
-// }
-// Pool - {
-//   kernel_size: number for [x, x] or number[] for [x, y],
-//   stride: number for [x, x] or number[] for [x, y]
-// }
-// Padding - {
-//   padding: number for [x, x] or number[] for [x, y],
-// }
-// Dropout - {p} - TODO
-// Normalization - {channels} - TODO
+import { CNNLayer, CNNLayerTypes } from "../types/CNNTypes";
 
 type V3 = { x: number; y: number; z: number };
 
@@ -55,8 +25,10 @@ type ConvertedLayer = {
     | "Normalization"
     | "Padding"
     | "Flatten"
-    | "Linear"
-    | "Gap";
+    | "Dense"
+    | "Output"
+    | "Gap"
+    | "CrossGap";
   size: V3;
   infoText: string;
   sizeText: string;
@@ -67,7 +39,6 @@ type LAYER_SCALE = "linear" | "log";
 type SpriteProps = {
   msg: string;
   position: V3;
-  k: { i: number };
   fontSize?: number;
   fontFace?: string;
   fontWeight?: string;
@@ -83,92 +54,164 @@ type SpriteProps = {
   line?: boolean;
 };
 
+type FormatterProps = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  layer: any;
+  currSize: V3;
+};
 
-function formatInputLayer(layer: InputLayer): ConvertedLayer {
+function formatInputLayer({ layer }: FormatterProps): ConvertedLayer[] {
   const size = { x: layer.size[0], y: layer.size[1], z: layer.size[2] };
-  return {
-    type: "Input",
-    size: size,
-    infoText: `Input\n${layerSizeToString(size)}`,
-    sizeText: layerSizeToString(size),
-  };
+  return [
+    {
+      type: "Input",
+      size: size,
+      infoText: `Input\n${layerSizeToString(size)}`,
+      sizeText: layerSizeToString(size),
+    },
+  ];
 }
 
-function formatConvLayer(
-  layer: ConvLayer,
-  currSize: V3
-): ConvertedLayer {
+function formatConvLayer({
+  layer,
+  currSize,
+}: FormatterProps): ConvertedLayer[] {
   const size = {
     x: layer.size,
     y: currSize.y - (layer.kernel[0] - 1),
     z: currSize.z - (layer.kernel[1] - 1),
   };
-  return {
-    type: "Conv",
-    size: size,
-    infoText: `Conv\n${layer.size}x${layer.kernel[0]}x${layer.kernel[1]}`,
-    sizeText: layerSizeToString(size),
-  };
+  return [
+    {
+      type: "Gap",
+      size: { x: 1, y: 1, z: 1 },
+      infoText: "Gap",
+      sizeText: "",
+    },
+    {
+      type: "Conv",
+      size: size,
+      infoText: `Conv\n${layer.size}x${layer.kernel[0]}x${layer.kernel[1]}`,
+      sizeText: layerSizeToString(size),
+    },
+  ];
 }
 
-function formatPaddingLayer(
-  layer: PaddingLayer,
-  currSize: V3
-): ConvertedLayer {
+function formatPaddingLayer({
+  layer,
+  currSize,
+}: FormatterProps): ConvertedLayer[] {
   const newSize = {
     x: currSize.x,
     y: currSize.y + 2 * layer.padding[0],
     z: currSize.z + 2 * layer.padding[1],
   };
-  return {
-    type: "Padding",
-    size: newSize,
-    infoText: `Padding\n${layer.padding[0]}x${layer.padding[1]}`,
-    sizeText: layerSizeToString(newSize),
-  };
+  return [
+    {
+      type: "Padding",
+      size: newSize,
+      infoText: `Padding\n${layer.padding[0]}x${layer.padding[1]}`,
+      sizeText: layerSizeToString(newSize),
+    },
+  ];
 }
 
-function formatPoolingLayer(
-  layer: PoolLayer,
-  currSize: V3
-): ConvertedLayer {
+function formatPoolingLayer({
+  layer,
+  currSize,
+}: FormatterProps): ConvertedLayer[] {
   const size = {
     x: currSize.x,
     y: Math.floor((currSize.y - layer.kernel[0]) / layer.stride[0] + 1),
     z: Math.floor((currSize.z - layer.kernel[1]) / layer.stride[1] + 1),
   };
-  return {
-    type: "Pool",
-    size: size,
-    infoText: `Pool\n${layer.kernel[0]}x${layer.kernel[1]}\n${layer.stride[0]}x${layer.stride[1]}`,
-    sizeText: layerSizeToString(size),
-  };
+  return [
+    {
+      type: "Gap",
+      size: { x: 1, y: 1, z: 1 },
+      infoText: "Gap",
+      sizeText: "",
+    },
+    {
+      type: "Pool",
+      size: size,
+      infoText: `Pool\n${layer.kernel[0]}x${layer.kernel[1]}\n${layer.stride[0]}x${layer.stride[1]}`,
+      sizeText: layerSizeToString(size),
+    },
+  ];
 }
 
-type LayerFormatters = {
-  Input?: (layer: InputLayer, currSize: V3) => ConvertedLayer;
-  Conv?: (layer: ConvLayer,  currSize: V3) => ConvertedLayer;
-  Padding?: (layer: PaddingLayer,  currSize: V3) => ConvertedLayer;
-  Pool?: (layer: PoolLayer,  currSize: V3) => ConvertedLayer;
-  Flatten?: (layer: FlattenLayer) => ConvertedLayer;
-  Dense?: (layer: CNNDenseLayer) => ConvertedLayer;
-  Dropout?: (layer: CNNDropoutLayer) => ConvertedLayer;
-  Output?: (layer: CNNOutputLayer) => ConvertedLayer;
-};
+function formatFlattenLayer({ currSize }: FormatterProps): ConvertedLayer[] {
+  return [
+    {
+      type: "Gap",
+      size: { x: 1, y: 1, z: 1 },
+      infoText: "Gap",
+      sizeText: "",
+    },
+    {
+      type: "Flatten",
+      size: { x: 1, y: currSize.x * currSize.y * currSize.z, z: 1 },
+      infoText: "Flatten",
+      sizeText: (currSize.x * currSize.y * currSize.z).toString(),
+    },
+  ];
+}
 
-const layerFormatters: LayerFormatters = {
+function formatDenseLayer({ layer }: FormatterProps): ConvertedLayer[] {
+  return [
+    {
+      type: "CrossGap",
+      size: { x: 1, y: 1, z: 1 },
+      infoText: "Gap",
+      sizeText: "",
+    },
+    {
+      type: "Dense",
+      size: { x: 1, y: layer.size, z: 1 },
+      infoText: `Dense\n${layer.size}`,
+      sizeText: layer.size.toString(),
+    },
+  ];
+}
+
+function formatOutputLayer({ layer }: FormatterProps): ConvertedLayer[] {
+  return [
+    {
+      type: "CrossGap",
+      size: { x: 1, y: 1, z: 1 },
+      infoText: "Gap",
+      sizeText: "",
+    },
+    {
+      type: "Output",
+      size: { x: 1, y: layer.size, z: 1 },
+      infoText: `Output\n${layer.size}`,
+      sizeText: layer.size.toString(),
+    },
+  ];
+}
+
+const layerFormatters: Record<
+  CNNLayerTypes,
+  (props: FormatterProps) => ConvertedLayer[]
+> = {
   Input: formatInputLayer,
   Conv: formatConvLayer,
   Padding: formatPaddingLayer,
   Pool: formatPoolingLayer,
-  // TODO: Add more layer formatters for Flatten, Dense, etc.
+  Flatten: formatFlattenLayer,
+  Dense: formatDenseLayer,
+  Dropout: (): ConvertedLayer[] => {
+    return [];
+  },
+  Output: formatOutputLayer,
 } as const;
 
 // source - https://github.com/vasturiano/three-spritetext/blob/master/src/index.js
 function Sprite({
   msg,
   position,
-  k,
   fontSize = 150,
   fontWeight = "bold",
   fontFace = "JetBrainsMono",
@@ -247,16 +290,39 @@ function Sprite({
       context.lineWidth = cornerWidth;
       context.beginPath();
       [
-        relBorderRadius[0]? [relBorderRadius[0], hb, hb, relBorderRadius[0]] : null,
-        relBorderRadius[1]? [canvas.width - relBorderRadius[1], canvas.width - hb, hb, relBorderRadius[1]] : null,
-        relBorderRadius[2]? [canvas.width - relBorderRadius[2], canvas.width - hb, canvas.height - hb, canvas.height - relBorderRadius[2]] : null,
-        relBorderRadius[3]? [relBorderRadius[3], hb, canvas.height - hb, canvas.height - relBorderRadius[3]] : null,
+        relBorderRadius[0]
+          ? [relBorderRadius[0], hb, hb, relBorderRadius[0]]
+          : null,
+        relBorderRadius[1]
+          ? [
+              canvas.width - relBorderRadius[1],
+              canvas.width - hb,
+              hb,
+              relBorderRadius[1],
+            ]
+          : null,
+        relBorderRadius[2]
+          ? [
+              canvas.width - relBorderRadius[2],
+              canvas.width - hb,
+              canvas.height - hb,
+              canvas.height - relBorderRadius[2],
+            ]
+          : null,
+        relBorderRadius[3]
+          ? [
+              relBorderRadius[3],
+              hb,
+              canvas.height - hb,
+              canvas.height - relBorderRadius[3],
+            ]
+          : null,
       ]
-      .filter((d): d is number[] => d!== null)
-      .forEach(([x0, x1, y0, y1]) => {
-        context.moveTo(x0, y0);
-        context.quadraticCurveTo(x1, y0, x1, y1);
-      });
+        .filter((d): d is number[] => d !== null)
+        .forEach(([x0, x1, y0, y1]) => {
+          context.moveTo(x0, y0);
+          context.quadraticCurveTo(x1, y0, x1, y1);
+        });
       context.stroke();
     }
   }
@@ -358,40 +424,31 @@ function Sprite({
     }
   }
 
-  const linePoints: number[] = [];
-  if (line) {
-    linePoints.push(
-      position.x,
-      (up ? 1 : -1) * (position.y / 2),
-      pos[2],
-      position.x,
-      center - (up ? 1 : -1) * ((canvas.height / 2) * absScale),
-      pos[2]
-    );
-  }
-
-  const geometryRef = useRef<THREE.BufferGeometry | null>(null);
-  useEffect(() => {
-    if (geometryRef.current) {
-      const positionAttribute = geometryRef.current.attributes.position;
-      positionAttribute.array.set(linePoints);
-      positionAttribute.needsUpdate = true; // Notify Three.js about the update
-    }
-  }, [linePoints]);
-
   return (
     <>
-      <sprite key={k.i++} scale={[xScale, yScale, 0]} position={pos}>
+      <sprite key="0" scale={[xScale, yScale, 0]} position={pos}>
         <spriteMaterial attach="material" map={texture} rotation={angle} />
       </sprite>
       {line && (
-        <line key={k.i++}>
-          <bufferGeometry ref={geometryRef}>
+        <line key="1">
+          <bufferGeometry>
             <float32BufferAttribute
               attach="attributes-position"
               count={2}
-              array={new Float32Array(linePoints)}
+              array={
+                new Float32Array([
+                  position.x,
+                  (up ? 1 : -1) * (position.y / 2),
+                  pos[2],
+                  position.x,
+                  center - (up ? 1 : -1) * ((canvas.height / 2) * absScale),
+                  pos[2],
+                ])
+              }
               itemSize={3}
+              onUpdate={(self) => {
+                self.needsUpdate = true;
+              }}
             />
           </bufferGeometry>
           <lineBasicMaterial color="black" linewidth={2} />
@@ -404,11 +461,9 @@ function Sprite({
 function CNNLayerBox({
   layer,
   prevEdge,
-  k,
 }: {
   layer: ConvertedLayer;
   prevEdge: number;
-  k: { i: number };
 }): JSX.Element {
   let color = "yellow";
   switch (layer.type) {
@@ -440,14 +495,25 @@ function CNNLayerBox({
       }
       break;
     case "Flatten":
+      {
+        color = "cyan";
+      }
       break;
-    case "Linear":
+    case "Dense":
+      {
+        color = "purple";
+      }
+      break;
+    case "Output":
+      {
+        color = "red";
+      }
       break;
     default:
       break;
   }
   return (
-    <mesh position={[prevEdge + layer.size.x / 2, 0, 0]} key={k.i++}>
+    <mesh position={[prevEdge + layer.size.x / 2, 0, 0]} key={0}>
       <boxGeometry args={[layer.size.x, layer.size.y, layer.size.z]} />
       <meshStandardMaterial
         color={color}
@@ -464,18 +530,16 @@ function CNNLayerBox({
 function GapLayerBox({
   prevLayer,
   nextLayer,
-  k,
 }: {
   prevLayer: V3;
   nextLayer: V3;
-  k: { i: number };
 }): JSX.Element[] {
   const res: JSX.Element[] = [];
-
+  let k = 0;
   for (let i = -0.5; i < 1; i += 1) {
     for (let j = -0.5; j < 1; j += 1) {
       res.push(
-        <line key={k.i++}>
+        <line key={k++}>
           <bufferGeometry>
             <float32BufferAttribute
               attach="attributes-position"
@@ -491,6 +555,76 @@ function GapLayerBox({
                 ])
               }
               itemSize={3}
+              onUpdate={(self) => {
+                self.needsUpdate = true;
+              }}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial color="black" linewidth={2} />
+        </line>
+      );
+    }
+  }
+  return res;
+}
+
+function CrossGapLayerBox({
+  prevLayer,
+  nextLayer,
+}: {
+  prevLayer: V3;
+  nextLayer: V3;
+}): JSX.Element[] {
+  const res: JSX.Element[] = [];
+  let k = 0;
+
+  for (let i = -0.5; i < 1; i += 1) {
+    for (let j = -0.5; j < 1; j += 1) {
+      res.push(
+        <line key={k++}>
+          <bufferGeometry>
+            <float32BufferAttribute
+              attach="attributes-position"
+              count={2}
+              array={
+                new Float32Array([
+                  prevLayer.x,
+                  prevLayer.y * i,
+                  prevLayer.z * j,
+                  nextLayer.x,
+                  nextLayer.y * i,
+                  nextLayer.z * j,
+                ])
+              }
+              itemSize={3}
+              onUpdate={(self) => {
+                self.needsUpdate = true;
+              }}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial color="black" linewidth={2} />
+        </line>
+      );
+      res.push(
+        <line key={k++}>
+          <bufferGeometry>
+            <float32BufferAttribute
+              attach="attributes-position"
+              count={2}
+              array={
+                new Float32Array([
+                  prevLayer.x,
+                  prevLayer.y * i,
+                  prevLayer.z * j,
+                  nextLayer.x,
+                  nextLayer.y * -i,
+                  nextLayer.z * j,
+                ])
+              }
+              itemSize={3}
+              onUpdate={(self) => {
+                self.needsUpdate = true;
+              }}
             />
           </bufferGeometry>
           <lineBasicMaterial color="black" linewidth={2} />
@@ -505,18 +639,37 @@ function layerSizeToString(size: V3): string {
   return `${size.x}x${size.y}x${size.z}`;
 }
 
-function calcBoxSize(size: V3, layerScaling: LAYER_SCALE) {
-  switch (layerScaling) {
-    case "linear":
-      size.x = Math.max(size.x, 10);
-      break;
-    case "log":
-      size.x = Math.log2(size.x);
-      size.y = Math.log2(size.y);
-      size.z = Math.log2(size.z);
-      break;
-    default:
-      break;
+function calcBoxSize(type: string, size: V3, layerScaling: LAYER_SCALE) {
+  switch (type) {
+    case "Input":
+    case "Conv":
+    case "Pool":
+    case "Padding":
+      {
+        if (layerScaling === "linear") {
+          size.x = Math.max(size.x, 10);
+        } else if (layerScaling === "log") {
+          size.x = Math.log2(size.x);
+          size.y = Math.log2(size.y);
+          size.z = Math.log2(size.z);
+        }
+      }
+      return;
+    case "Gap":
+      size.x = Math.max(size.x, 15);
+      return;
+    case "Dropout":
+      return;
+    case "CrossGap":
+      size.x = Math.max(size.x, 20);
+      return;
+    case "Dense":
+    case "Output":
+    case "Flatten":
+      size.x = Math.max(size.x, 5);
+      size.y = Math.log2(size.y) * 10;
+      size.z = Math.max(size.z, 5);
+      return;
   }
 }
 
@@ -526,7 +679,7 @@ function getMeshes(
   height: number,
   config: {
     layerScaling: LAYER_SCALE;
-    showText: "none" | "up" | "down" | "alt" | "slant";
+    showText: "none" | "slantDown" | "alt" | "slant";
     showLines: boolean;
   } = {
     layerScaling: "linear",
@@ -535,37 +688,31 @@ function getMeshes(
   }
 ): { res: JSX.Element[]; zoom: number } {
   const res: JSX.Element[] = [];
-  const k: { i: number } = { i: 0 };
+  let k = 0;
 
   // First pass - validate and convert layers into standard format
   // Current size of the layer, used to calculate the size of the next layer
   let currSize: V3 = { x: 0, y: 0, z: 0 };
   const convertedLayers: ConvertedLayer[] = dataset.flatMap(
     (layer): ConvertedLayer[] => {
-      const formatter = layerFormatters[layer.type as keyof LayerFormatters];
+      const formatter = layerFormatters[layer.type];
 
-      if (!formatter || !layer) {
-        // throw new Error(`Invalid layer type: ${layer.type}`);
-        // TODO: ignore for now
+      if (!formatter) {
+        throw new Error(`Invalid layer type: ${layer.type}`);
+      }
+
+      const currLayers = formatter({ layer, currSize } as FormatterProps);
+      if (currLayers.length === 0) {
         return [];
       }
-      
-      // @ts-expect-error TODO: fix this
-      const currLayer = formatter(layer, currSize);
-      // TODO: temp ignore Gap
-      if (currLayer.type !== "Gap") {
-        currSize = currLayer.size;
-      }
-      return [currLayer];
+      currSize = currLayers[currLayers.length - 1].size;
+      return currLayers;
     }
   );
 
   // Second pass - set the box sizes
   convertedLayers.forEach((layer) => {
-    if (layer.type === "Gap") {
-      return;
-    }
-    calcBoxSize(layer.size, config.layerScaling);
+    calcBoxSize(layer.type, layer.size, config.layerScaling);
   });
 
   // Third pass - calculate total width and max height of the layers
@@ -586,7 +733,7 @@ function getMeshes(
         }
         res.push(
           <GapLayerBox
-            key={k.i++}
+            key={k++}
             prevLayer={{
               x: prevLayerEndX,
               y: convertedLayers[i - 1].size.y,
@@ -597,22 +744,34 @@ function getMeshes(
               y: convertedLayers[i + 1].size.y,
               z: convertedLayers[i + 1].size.z,
             }}
-            k={k}
           />
         );
-      } else {
+      } else if (layer.type === "CrossGap") {
         res.push(
-          <CNNLayerBox
-            key={k.i++}
-            layer={layer}
-            prevEdge={prevLayerEndX}
-            k={k}
+          <CrossGapLayerBox
+            key={k++}
+            prevLayer={{
+              x: prevLayerEndX,
+              y: convertedLayers[i - 1].size.y,
+              z: convertedLayers[i - 1].size.z,
+            }}
+            nextLayer={{
+              x: prevLayerEndX + layer.size.x,
+              y: convertedLayers[i + 1].size.y,
+              z: convertedLayers[i + 1].size.z,
+            }}
           />
+        );
+      } else if (layer.type !== "Dropout") {
+        res.push(
+          <CNNLayerBox key={k++} layer={layer} prevEdge={prevLayerEndX} />
         );
       }
 
       prevLayerEndX += layer.size.x;
-      return layer.type === "Gap"
+      return layer.type === "Gap" ||
+        layer.type === "CrossGap" ||
+        layer.type === "Dropout"
         ? []
         : [
             {
@@ -632,16 +791,23 @@ function getMeshes(
     postLayers.forEach((layer, i) => {
       res.push(
         <Sprite
-          key={k.i++}
+          key={k++}
           msg={layer.text}
           position={layer.vec}
-          k={k}
           up={
             // switch between up and down if alt
             // If up or slant, put up. If down, put down
-            config.showText === "alt" ? i % 2 === 0 : config.showText !== "down"
+            config.showText === "alt"
+              ? i % 2 === 0
+              : config.showText === "slant"
           }
-          angle={config.showText === "slant" ? Math.PI / 6 : 0}
+          angle={
+            config.showText === "slant"
+              ? Math.PI / 6
+              : config.showText === "slantDown"
+              ? -Math.PI / 6
+              : 0
+          }
           line={config.showLines}
         />
       );
@@ -655,23 +821,27 @@ function getMeshes(
   return { res, zoom: minScale };
 }
 
+type AnnotationAlignment = "none" | "alt" | "slant" | "slantDown";
+
 // Entry point for CNN visual, takes in width and height of the canvas, needs to be replaced with a prop or return a update function
 function CNNVisual({
+  configRef,
+  dlRef,
   layers,
   toggleMaximize,
   maximizeState,
   width,
   height,
 }: {
+  configRef: React.MutableRefObject<null>;
+  dlRef: React.MutableRefObject<null>;
   layers: CNNLayer[];
   toggleMaximize: () => void;
   maximizeState: boolean;
   width: number;
   height: number;
 }) {
-  const [showText, setShowText] = useState<
-    "none" | "up" | "down" | "alt" | "slant"
-  >("alt");
+  const [showText, setShowText] = useState<AnnotationAlignment>("alt");
   const [showLines, setShowLines] = useState(true);
   const layerScaling = "linear";
   const [zoomState, setZoomState] = useState(1);
@@ -723,19 +893,19 @@ function CNNVisual({
       }}
     >
       <Segmented
+        ref={configRef}
         key={1}
         className="absolute m-2 z-10 border-slate-500 border-2"
         vertical
         options={[
           { value: "none", icon: <StopOutlined /> },
-          { value: "up", icon: <UpOutlined /> },
-          { value: "down", icon: <DownOutlined /> },
           { value: "alt", icon: <SwapOutlined /> },
           { value: "slant", icon: <LineOutlined rotate={-30} /> },
+          { value: "slantDown", icon: <LineOutlined rotate={30} /> },
         ]}
         value={showText}
         onChange={(value) => {
-          setShowText(value as "none" | "up" | "down" | "alt" | "slant");
+          setShowText(value as AnnotationAlignment);
         }}
       />
       <Segmented
@@ -756,6 +926,7 @@ function CNNVisual({
 
       <Tooltip key={3} placement="left" title="Download">
         <Button
+          ref={dlRef}
           className="absolute z-10 right-10 m-2 border-2 border-slate-500 "
           icon={<DownloadOutlined />}
           size="middle"
