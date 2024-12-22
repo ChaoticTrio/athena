@@ -1,12 +1,13 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Editor } from "@monaco-editor/react";
-import { message, Radio, Tooltip, Button } from "antd";
 import { CopyOutlined, DownloadOutlined } from "@ant-design/icons";
-import { FCNGenerator } from "../neural-networks/fcn/fcn-generator";
-import { CNNGenerator } from "../neural-networks/cnn/cnn-generator";
-import { FCNConfig, FCNLayer } from "../types/FCNTypes";
+import { Editor } from "@monaco-editor/react";
+import { Button, message, Radio, Tooltip } from "antd";
+import React, { useCallback, useEffect, useState } from "react";
+import { CNNGenerator } from "../code-generators/cnn/cnn-generator";
+import { FCNGenerator } from "../code-generators/fcn/fcn-generator";
 import { CNNConfig, CNNLayer } from "../types/CNNTypes";
+import { FCNConfig, FCNLayer } from "../types/FCNTypes";
 interface CodeEditorProps {
+  codeRef: React.MutableRefObject<null>;
   activeTab: string;
   fcnLayers: FCNLayer[];
   cnnLayers: CNNLayer[];
@@ -15,7 +16,6 @@ interface CodeEditorProps {
 enum FRAMEWORK {
   PyTorch = "PyTorch",
   Keras = "Keras",
-  XXX = "XXX",
 }
 
 enum KERAS_TYPE {
@@ -25,6 +25,7 @@ enum KERAS_TYPE {
 }
 
 const CodeEditor: React.FC<CodeEditorProps> = ({
+  codeRef,
   activeTab,
   fcnLayers,
   cnnLayers,
@@ -34,36 +35,42 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const [code, setCode] = useState<string>("# Your Python code here");
 
   const generateCode = useCallback(() => {
-    if (fcnLayers.length > 1 || cnnLayers.length > 1) {
-      try {
-        switch (activeTab) {
-          case "FCN": {
-            const fcnGenerator = new FCNGenerator();
-            const fcnConfig: FCNConfig = {
-              layers: fcnLayers,
-              kerasType: kerasType,
-            };
-            const fcnCode = fcnGenerator.generateCode(framework, fcnConfig);
-            setCode(fcnCode);
+    try {
+      switch (activeTab) {
+        case "FCN": {
+          if (fcnLayers.length === 0) {
+            setCode("# Your Python code here");
             break;
           }
-          case "CNN": {
-            const cnnGenerator = new CNNGenerator();
-            const cnnConfig: CNNConfig = {
-              layers: cnnLayers,
-              kerasType: kerasType,
-            };
-            const cnnCode = cnnGenerator.generateCode(framework, cnnConfig);
-            setCode(cnnCode);
-            break;
-          }
-          default:
-            throw new Error("Invalid tab selected!");
+          const fcnGenerator = new FCNGenerator();
+          const fcnConfig: FCNConfig = {
+            layers: fcnLayers,
+            kerasType: kerasType,
+          };
+          const fcnCode = fcnGenerator.generateCode(framework, fcnConfig);
+          setCode(fcnCode);
+          break;
         }
-      } catch (error) {
-        message.error("Failed to generate code!");
-        console.error(error);
+        case "CNN": {
+          if (cnnLayers.length === 0) {
+            setCode("# Your Python code here");
+            break;
+          }
+          const cnnGenerator = new CNNGenerator();
+          const cnnConfig: CNNConfig = {
+            layers: cnnLayers,
+            kerasType: kerasType,
+          };
+          const cnnCode = cnnGenerator.generateCode(framework, cnnConfig);
+          setCode(cnnCode);
+          break;
+        }
+        default:
+          throw new Error("Invalid tab selected!");
       }
+    } catch (error) {
+      message.error("Failed to generate code!");
+      console.error(error);
     }
   }, [activeTab, framework, kerasType, fcnLayers, cnnLayers]);
 
@@ -102,7 +109,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   return (
     <div className="h-full overflow-hidden">
       <div className="code-header flex flex-row m-2 items-start">
-        <div className="framework-tabs flex flex-col">
+        <div className="framework-tabs flex flex-row">
           <Radio.Group
             options={Object.values(FRAMEWORK).map((f) => ({
               label: f,
@@ -112,7 +119,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
             onChange={(e) => setFramework(e.target.value as FRAMEWORK)}
             optionType="button"
             buttonStyle="solid"
-            className="mb-1 custom-radio-group"
+            className=""
           />
           {framework === FRAMEWORK.Keras && (
             <Radio.Group
@@ -124,11 +131,11 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
               onChange={(e) => setKerasType(e.target.value as KERAS_TYPE)}
               optionType="button"
               buttonStyle="solid"
-              className="mt-1 custom-radio-group"
+              className="ml-2"
             />
           )}
         </div>
-        <div className="ml-auto flex flex-row items-center">
+        <div className="ml-auto flex flex-row items-center" ref={codeRef}>
           <Tooltip title="Copy" className="mr-1">
             <Button icon={<CopyOutlined />} onClick={copyToClipboard} />
           </Tooltip>
@@ -147,6 +154,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
             scrollBeyondLastLine: true,
             fontSize: 14,
             automaticLayout: true,
+            fontFamily: "JetBrainsMono",
           }}
         />
       </div>

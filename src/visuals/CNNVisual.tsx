@@ -12,39 +12,7 @@ import { Canvas } from "@react-three/fiber";
 import { Button, Segmented, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import * as THREE from "three";
-import {
-  CNNDenseLayer,
-  CNNDropoutLayer,
-  CNNLayer,
-  CNNLayerTypes,
-  CNNOutputLayer,
-  ConvLayer,
-  FlattenLayer,
-  InputLayer,
-  PaddingLayer,
-  PoolLayer,
-  FlattenLayer,
-  CNNDenseLayer,
-  CNNDropoutLayer,
-} from "../types/CNNTypes";
-
-// array of objects with req properties below
-// Input - {
-//   size: [x, y, z]
-// }
-// CNN - {
-//   size: output_channels as a number,
-//   kernel_size: number for [x, x] or number[] for [x, y],
-// }
-// Pool - {
-//   kernel_size: number for [x, x] or number[] for [x, y],
-//   stride: number for [x, x] or number[] for [x, y]
-// }
-// Padding - {
-//   padding: number for [x, x] or number[] for [x, y],
-// }
-// Dropout - {p} - TODO
-// Normalization - {channels} - TODO
+import { CNNLayer, CNNLayerTypes } from "../types/CNNTypes";
 
 type V3 = { x: number; y: number; z: number };
 
@@ -86,7 +54,13 @@ type SpriteProps = {
   line?: boolean;
 };
 
-function formatInputLayer(layer: InputLayer): ConvertedLayer[] {
+type FormatterProps = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  layer: any;
+  currSize: V3;
+};
+
+function formatInputLayer({ layer }: FormatterProps): ConvertedLayer[] {
   const size = { x: layer.size[0], y: layer.size[1], z: layer.size[2] };
   return [
     {
@@ -98,10 +72,10 @@ function formatInputLayer(layer: InputLayer): ConvertedLayer[] {
   ];
 }
 
-function formatConvLayer(
-  layer: ConvLayer,
-  currSize: V3
-): ConvertedLayer[] {
+function formatConvLayer({
+  layer,
+  currSize,
+}: FormatterProps): ConvertedLayer[] {
   const size = {
     x: layer.size,
     y: currSize.y - (layer.kernel[0] - 1),
@@ -123,10 +97,10 @@ function formatConvLayer(
   ];
 }
 
-function formatPaddingLayer(
-  layer: PaddingLayer,
-  currSize: V3
-): ConvertedLayer[] {
+function formatPaddingLayer({
+  layer,
+  currSize,
+}: FormatterProps): ConvertedLayer[] {
   const newSize = {
     x: currSize.x,
     y: currSize.y + 2 * layer.padding[0],
@@ -142,10 +116,10 @@ function formatPaddingLayer(
   ];
 }
 
-function formatPoolingLayer(
-  layer: PoolLayer,
-  currSize: V3
-): ConvertedLayer[] {
+function formatPoolingLayer({
+  layer,
+  currSize,
+}: FormatterProps): ConvertedLayer[] {
   const size = {
     x: currSize.x,
     y: Math.floor((currSize.y - layer.kernel[0]) / layer.stride[0] + 1),
@@ -167,11 +141,7 @@ function formatPoolingLayer(
   ];
 }
 
-function formatFlattenLayer(
-  layer: FlattenLayer,
-  i: number,
-  currSize: V3
-): ConvertedLayer[] {
+function formatFlattenLayer({ currSize }: FormatterProps): ConvertedLayer[] {
   return [
     {
       type: "Gap",
@@ -188,11 +158,7 @@ function formatFlattenLayer(
   ];
 }
 
-function formatDenseLayer(
-  layer: CNNDenseLayer,
-  i: number,
-  currSize: V3
-): ConvertedLayer[] {
+function formatDenseLayer({ layer }: FormatterProps): ConvertedLayer[] {
   return [
     {
       type: "CrossGap",
@@ -209,11 +175,7 @@ function formatDenseLayer(
   ];
 }
 
-function formatOutputLayer(
-  layer: CNNOutputLayer,
-  i: number,
-  currSize: V3
-): ConvertedLayer[] {
+function formatOutputLayer({ layer }: FormatterProps): ConvertedLayer[] {
   return [
     {
       type: "CrossGap",
@@ -232,16 +194,15 @@ function formatOutputLayer(
 
 const layerFormatters: Record<
   CNNLayerTypes,
-  (layer: any, index: number, prevSize: V3) => ConvertedLayer[]
+  (props: FormatterProps) => ConvertedLayer[]
 > = {
   Input: formatInputLayer,
   Conv: formatConvLayer,
   Padding: formatPaddingLayer,
   Pool: formatPoolingLayer,
-  // TODO: Add more layer formatters for Flatten, Dense, etc.
   Flatten: formatFlattenLayer,
   Dense: formatDenseLayer,
-  Dropout: (layer: CNNDropoutLayer, i: number, currSize: V3) => {
+  Dropout: (): ConvertedLayer[] => {
     return [];
   },
   Output: formatOutputLayer,
@@ -329,16 +290,39 @@ function Sprite({
       context.lineWidth = cornerWidth;
       context.beginPath();
       [
-        relBorderRadius[0]? [relBorderRadius[0], hb, hb, relBorderRadius[0]] : null,
-        relBorderRadius[1]? [canvas.width - relBorderRadius[1], canvas.width - hb, hb, relBorderRadius[1]] : null,
-        relBorderRadius[2]? [canvas.width - relBorderRadius[2], canvas.width - hb, canvas.height - hb, canvas.height - relBorderRadius[2]] : null,
-        relBorderRadius[3]? [relBorderRadius[3], hb, canvas.height - hb, canvas.height - relBorderRadius[3]] : null,
+        relBorderRadius[0]
+          ? [relBorderRadius[0], hb, hb, relBorderRadius[0]]
+          : null,
+        relBorderRadius[1]
+          ? [
+              canvas.width - relBorderRadius[1],
+              canvas.width - hb,
+              hb,
+              relBorderRadius[1],
+            ]
+          : null,
+        relBorderRadius[2]
+          ? [
+              canvas.width - relBorderRadius[2],
+              canvas.width - hb,
+              canvas.height - hb,
+              canvas.height - relBorderRadius[2],
+            ]
+          : null,
+        relBorderRadius[3]
+          ? [
+              relBorderRadius[3],
+              hb,
+              canvas.height - hb,
+              canvas.height - relBorderRadius[3],
+            ]
+          : null,
       ]
-      .filter((d): d is number[] => d!== null)
-      .forEach(([x0, x1, y0, y1]) => {
-        context.moveTo(x0, y0);
-        context.quadraticCurveTo(x1, y0, x1, y1);
-      });
+        .filter((d): d is number[] => d !== null)
+        .forEach(([x0, x1, y0, y1]) => {
+          context.moveTo(x0, y0);
+          context.quadraticCurveTo(x1, y0, x1, y1);
+        });
       context.stroke();
     }
   }
@@ -704,7 +688,6 @@ function getMeshes(
   }
 ): { res: JSX.Element[]; zoom: number } {
   const res: JSX.Element[] = [];
-  const isWireframe: boolean = false;
   let k = 0;
 
   // First pass - validate and convert layers into standard format
@@ -712,15 +695,13 @@ function getMeshes(
   let currSize: V3 = { x: 0, y: 0, z: 0 };
   const convertedLayers: ConvertedLayer[] = dataset.flatMap(
     (layer): ConvertedLayer[] => {
-      const formatter = layerFormatters[layer.type as keyof LayerFormatters];
+      const formatter = layerFormatters[layer.type];
 
-      if (!formatter || !layer) {
-        // throw new Error(`Invalid layer type: ${layer.type}`);
-        // TODO: ignore for now
-        // return [];
+      if (!formatter) {
+        throw new Error(`Invalid layer type: ${layer.type}`);
       }
 
-      const currLayers = formatter(layer, i, currSize);
+      const currLayers = formatter({ layer, currSize } as FormatterProps);
       if (currLayers.length === 0) {
         return [];
       }

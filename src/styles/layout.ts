@@ -46,4 +46,4 @@ export const layoutStyles = {
     active:h-1.5
     active:bg-blue-500
   `,
-}; 
+};

@@ -152,6 +152,7 @@ function outputElementForm(
 const layerFormatters: Record<
   string,
   (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     element: any,
     index: number,
     handleFormElementChange: (index: number, element: FCNLayer) => void

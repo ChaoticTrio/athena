@@ -1,7 +1,10 @@
-import { CodeGenerator, CNNConfig, CNNLayerTypes } from '../../../types/CNNTypes';
+import {
+  CNNConfig,
+  CNNLayerTypes,
+  CodeGenerator,
+} from "../../../types/CNNTypes";
 
 export class KerasGenerator implements CodeGenerator {
-
   /**
    * Generates the necessary import statements for a Keras model.
    * @returns A string containing the import statements
@@ -12,11 +15,11 @@ from keras import layers`;
   }
 
   /**
-    * Generates a Keras model based on the given CNN configuration and model type.
-    * @param config The CNN configuration
-    *  @param modelType The type of Keras model to generate, defaults to 'Sequential'
-    * @returns The generated code as a string
-  */
+   * Generates a Keras model based on the given CNN configuration and model type.
+   * @param config The CNN configuration
+   *  @param modelType The type of Keras model to generate, defaults to 'Sequential'
+   * @returns The generated code as a string
+   */
   generateModel(config: CNNConfig): string {
     const modelType = config.kerasType || "Sequential";
     switch (modelType) {
@@ -42,28 +45,32 @@ from keras import layers`;
     config.layers.forEach((layer) => {
       switch (layer.type) {
         case CNNLayerTypes.Input:
-          code += `model.add(layers.Input(shape=(${layer?.size[0]}, ${layer?.size[1]}, ${layer?.size[2]})))\n`;
+          code += `model.add(layers.Input(shape=(${layer.size[0]}, ${layer.size[1]}, ${layer.size[2]})))\n`;
           break;
         case CNNLayerTypes.Conv:
-          code += `model.add(layers.Conv2D(${layer?.size}, (${layer?.kernel[0]}, ${layer?.kernel[1]})))\n`;
+          code += `model.add(layers.Conv2D(${layer.size}, (${layer.kernel[0]}, ${layer.kernel[1]})))\n`;
           break;
         case CNNLayerTypes.Pool:
-          code += `model.add(layers.MaxPooling2D(pool_size=(${layer?.kernel[0]}, ${layer?.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]})))\n`;
+          code += `model.add(layers.MaxPooling2D(pool_size=(${layer.kernel[0]}, ${layer.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]})))\n`;
           break;
         case CNNLayerTypes.Padding:
-          code += `model.add(layers.ZeroPadding2D(padding=(${layer?.padding[0]}, ${layer?.padding[1]})))\n`;
+          code += `model.add(layers.ZeroPadding2D(padding=(${layer.padding[0]}, ${layer.padding[1]})))\n`;
           break;
         case CNNLayerTypes.Flatten:
           code += `model.add(layers.Flatten())\n`;
           break;
         case CNNLayerTypes.Dense:
-          code += `model.add(layers.Dense(${layer?.size}, activation='${layer.activation}'))\n`;
+          code += `model.add(layers.Dense(${
+            layer.size
+          }, activation='${layer.activation.toLowerCase()}'))\n`;
           break;
         case CNNLayerTypes.Dropout:
           code += `model.add(layers.Dropout(${layer.rate}))\n`;
           break;
         case CNNLayerTypes.Output:
-          code += `model.add(layers.Dense(${layer?.size}, activation='${layer.activation}'))\n`;
+          code += `model.add(layers.Dense(${
+            layer.size
+          }, activation='${layer.activation.toLowerCase()}'))\n`;
       }
     });
 
@@ -78,22 +85,22 @@ from keras import layers`;
   private generateFunctionalModel(config: CNNConfig): string {
     let code = "";
     let prevLayer = "inputs";
-    
+
     config.layers.forEach((layer) => {
       switch (layer.type) {
         case CNNLayerTypes.Input:
           code += `inputs = layers.Input(shape=(${layer?.size[0]}, ${layer?.size[1]}, ${layer?.size[2]}))\n`;
           break;
         case CNNLayerTypes.Conv:
-          code += `x = layers.Conv2D(${layer?.size}, (${layer?.kernel[0]}, ${layer?.kernel[1]}))(${prevLayer})\n`;
+          code += `x = layers.Conv2D(${layer?.size}, (${layer.kernel[0]}, ${layer.kernel[1]}))(${prevLayer})\n`;
           prevLayer = `x`;
           break;
         case CNNLayerTypes.Pool:
-          code += `x = layers.MaxPooling2D(pool_size=(${layer?.kernel[0]}, ${layer?.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]}))(${prevLayer})\n`;
+          code += `x = layers.MaxPooling2D(pool_size=(${layer.kernel[0]}, ${layer.kernel[1]}), strides=(${layer.stride[0]}, ${layer.stride[1]}))(${prevLayer})\n`;
           prevLayer = `x`;
           break;
         case CNNLayerTypes.Padding:
-          code += `x = layers.ZeroPadding2D(padding=(${layer?.padding[0]}, ${layer?.padding[1]}))(${prevLayer})\n`;
+          code += `x = layers.ZeroPadding2D(padding=(${layer.padding[0]}, ${layer.padding[1]}))(${prevLayer})\n`;
           prevLayer = `x`;
           break;
         case CNNLayerTypes.Flatten:
@@ -101,7 +108,9 @@ from keras import layers`;
           prevLayer = `x`;
           break;
         case CNNLayerTypes.Dense:
-          code += `x = layers.Dense(${layer?.size}, activation='${layer.activation}')(${prevLayer})\n`;
+          code += `x = layers.Dense(${
+            layer.size
+          }, activation='${layer.activation.toLowerCase()}')(${prevLayer})\n`;
           prevLayer = `x`;
           break;
         case CNNLayerTypes.Dropout:
@@ -109,7 +118,9 @@ from keras import layers`;
           prevLayer = `x`;
           break;
         case CNNLayerTypes.Output:
-          code += `x = layers.Dense(${layer?.size}, activation='${layer.activation}')(${prevLayer})\n`;
+          code += `x = layers.Dense(${
+            layer.size
+          }, activation='${layer.activation.toLowerCase()}')(${prevLayer})\n`;
           prevLayer = `x`;
       }
     });
@@ -126,7 +137,7 @@ from keras import layers`;
   private generateSubclassingModel(config: CNNConfig): string {
     let code = "class CNNModel(keras.Model):\n";
     code += "    def __init__(self):\n";
-    code += "        super(CNNModel, self).__init__()\n";
+    code += "        super().__init__()\n";
 
     config.layers.forEach((layer, index) => {
       switch (layer.type) {
@@ -143,13 +154,17 @@ from keras import layers`;
           code += `        self.flatten = layers.Flatten()\n`;
           break;
         case CNNLayerTypes.Dense:
-          code += `        self.dense${index} = layers.Dense(${layer?.size}, activation='${layer.activation}')\n`;
+          code += `        self.dense${index} = layers.Dense(${
+            layer?.size
+          }, activation='${layer.activation.toLowerCase()}')\n`;
           break;
         case CNNLayerTypes.Dropout:
           code += `        self.dropout${index} = layers.Dropout(${layer.rate})\n`;
           break;
         case CNNLayerTypes.Output:
-          code += `        self.output${index} = layers.Dense(${layer?.size}, activation='${layer.activation}')\n`;
+          code += `        self.output${index} = layers.Dense(${
+            layer?.size
+          }, activation='${layer.activation.toLowerCase()}')\n`;
           break;
       }
     });
@@ -184,12 +199,12 @@ from keras import layers`;
 
     return code;
   }
-  
+
   /**
    * Generates training code for a Keras model based on the given CNN configuration.
    * @param config The CNN configuration
    * @returns The generated code as a string
-  */
+   */
   generateTrainingCode(config: CNNConfig): string {
     return `
 def train_model(model, x_train, y_train, epochs=10, batch_size=32):
@@ -208,6 +223,10 @@ def train_model(model, x_train, y_train, epochs=10, batch_size=32):
     return history
 \n# Example usage:
 # Assume x_train and y_train are defined with proper input shapes and labels
-${config?.kerasType == 'Subclassing' ? '# For Subclassing model, we need to create a subclass model first => model = FCNModel()\n' : ''}# train_model(model, x_train, y_train)`;
+${
+  config?.kerasType == "Subclassing"
+    ? "# For Subclassing model, we need to create a subclass model first => model = FCNModel()\n"
+    : ""
+}# train_model(model, x_train, y_train)`;
   }
-} 
+}

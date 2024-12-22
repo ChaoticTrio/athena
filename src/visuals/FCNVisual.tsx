@@ -33,6 +33,10 @@ type Annotation = {
   text: string;
 };
 
+type AnnotationAlignment = "none" | "up" | "down";
+
+const SPLIT_THRESHOLD = 10; // Keep this even
+
 function getNodeCenter(layerInd: number, nodeNum: number): Point {
   return { x: layerInd * 300 + 100, y: nodeNum * 75 + 25 };
 }
@@ -45,7 +49,6 @@ function getCollapsedCenters(a: Point, b: Point): Point[] {
   return collapsed;
 }
 
-const SPLIT_THRESHOLD = 10; // Keep this even
 function getLayerNodes(
   layer: Layer,
   layerInd: number
@@ -78,7 +81,6 @@ function getLayerNodes(
   };
   return { nodes, layerCenter, collapsed, annotation: layer.size.toString() };
 }
-
 
 function getPathAndNodeData(
   dataset: Layer[],
@@ -162,7 +164,6 @@ function getPathAndNodeData(
   return { paths, nodes, collapsed, annotations };
 }
 
-// Entry point, might need to replace dataset with a prop or return an update function
 function FCNVisual({
   configRef,
   dlRef,
@@ -176,6 +177,7 @@ function FCNVisual({
   toggleMaximize: () => void;
   maximizeState: boolean;
 }): JSX.Element {
+  const [showText, setShowText] = useState<AnnotationAlignment>("down");
   const wrapperRef = useRef<HTMLDivElement>(null);
   const groupRef = useRef<SVGGElement>(null);
   const pathRef = useRef<SVGGElement>(null);
@@ -231,13 +233,14 @@ function FCNVisual({
     const layers: Layer[] = fcnLayers.flatMap((layer) => {
       switch (layer.type) {
         case FCNLayerTypes.Input:
-          return [{
-            type: layer.type as string,
-            size: layer.size,
-            label: "Input",
-          }];
+          return [
+            {
+              type: layer.type as string,
+              size: layer.size,
+              label: "Input",
+            },
+          ];
         case FCNLayerTypes.Dense:
-          prevSize = layer.size;
           return [
             {
               type: layer.type as string,
@@ -259,7 +262,8 @@ function FCNVisual({
     });
     const wrapper = d3.select(wrapperRef.current);
     const zoomGroup = d3.select(groupRef.current);
-    const zoomBehavior = d3.zoom<HTMLDivElement, unknown>()
+    const zoomBehavior = d3
+      .zoom<HTMLDivElement, unknown>()
       .scaleExtent([0.5, 3]) // Zoom limits
       .on("zoom", (event) => {
         // Apply the transform to the parent `<g>`

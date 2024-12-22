@@ -87,7 +87,11 @@ const sampleFCN: () => FCNLayer[] = () => [
     size: 16,
     activation: ActivationFunctions.Tanh,
   } as DenseLayer,
-  { type: "Output", size: 8 } as OutputLayer,
+  {
+    type: "Output",
+    size: 8,
+    activation: ActivationFunctions.ReLU,
+  } as OutputLayer,
 ];
 
 export {
@@ -108,4 +112,4 @@ export interface CodeGenerator {
   generateModel(config: FCNConfig): string;
   generateImports(): string;
   generateTrainingCode(config: FCNConfig): string;
-} 
+}

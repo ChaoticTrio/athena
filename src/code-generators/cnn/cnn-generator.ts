@@ -1,15 +1,14 @@
-
-import { PyTorchGenerator } from './generators/pytorch';
-import { KerasGenerator } from './generators/keras';
-import { CodeGenerator, CNNConfig } from '../../types/CNNTypes';
+import { CNNConfig, CodeGenerator } from "../../types/CNNTypes";
+import { KerasGenerator } from "./generators/keras";
+import { PyTorchGenerator } from "./generators/pytorch";
 
 export class CNNGenerator {
   private generators: Map<string, CodeGenerator>;
 
   constructor() {
     this.generators = new Map<string, CodeGenerator>([
-      ['pytorch', new PyTorchGenerator()],
-      ['keras', new KerasGenerator()]
+      ["pytorch", new PyTorchGenerator()],
+      ["keras", new KerasGenerator()],
     ]);
   }
 
@@ -25,4 +24,4 @@ ${generator.generateModel(config)}
 
 ${generator.generateTrainingCode(config)}`;
   }
-} 
+}
