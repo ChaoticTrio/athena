@@ -1,10 +1,7 @@
 import {
   CodeGenerator,
-  DenseLayer,
   FCNConfig,
-  FCNLayer,
   FCNLayerTypes,
-  InputLayer,
 } from "../../../types/FCNTypes";
 
 export class PyTorchGenerator implements CodeGenerator {
@@ -79,45 +76,6 @@ from torch.utils.data import DataLoader`;
     code += "        return x\n";
 
     return code;
-  }
-
-  /**
-   * Generates the PyTorch layers for the given fully connected network (FCN) configuration.
-   * Maps through each FCN layer and generates the corresponding PyTorch layer code.
-   * Supports 'Dense' and 'Dropout' layer types.
-   *
-   * @param layers - An array of FCNLayer objects representing the layers to be generated
-   * @returns The generated PyTorch layer code as a formatted string
-   */
-
-  private generateLayers(layers: FCNLayer[]): string {
-    let prevSize = 0;
-    return layers
-      .map((layer) => {
-        switch (layer.type) {
-          case "Input":
-            prevSize = (layer as InputLayer).size;
-            return "";
-          case "Dense": {
-            const res = `nn.Linear(${prevSize}, ${layer.size}),
-            ${this.getActivation(layer.activation)},`;
-            prevSize = (layer as DenseLayer).size;
-            return res;
-          }
-
-          case "Dropout":
-            return `nn.Dropout(p=${layer.rate}),`;
-
-          case "Output":
-            return `nn.Linear(${prevSize}, ${layer.size}),
-            ${this.getActivation(layer.activation)},`;
-
-          default:
-            return "";
-        }
-      })
-      .filter(Boolean)
-      .join("\n            ");
   }
 
   /**

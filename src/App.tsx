@@ -17,7 +17,7 @@ import { cnnEmptyLayers, CNNLayer } from "./types/CNNTypes";
 import { fcnEmptyLayers, FCNLayer } from "./types/FCNTypes";
 import CNNVisual from "./visuals/CNNVisual";
 import FCNVisual from "./visuals/FCNVisual";
-import LogoSVG from "/src/assets/Logo.svg?react";
+import LogoSVG from "/src/assets/logo.svg?react";
 
 const fontFace = new FontFace(
   "JetBrainsMono",
