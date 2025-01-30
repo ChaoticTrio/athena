@@ -1,6 +1,11 @@
 # ATHENA
+<p align="center">
+<img src="https://github.com/ChaoticTrio/athena/blob/main/src/assets/Logo.png" width="200">
+<br><br>
+Automated Tool for Hierarchical Exploration of Neural Architectures
 
-**A**utomated **T**ool for **H**ierarchical **E**xploration of **N**eural **A**rchitectures
+</p>
+
 
 ## Description
 **Athena**, named after the Greek goddess of wisdom and strategy, is an intuitive web-based tool designed to streamline the creation of machine learning models by generating starter code and meaningful visualizations. Whether you're a beginner looking for a quick way to structure your ML projects or an experienced practitioner prototyping architectures, **Athena** simplifies the process by providing ready-to-use code snippets and clear model diagrams.
